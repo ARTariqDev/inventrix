@@ -34,7 +34,7 @@ export default function LoginPage() {
     if (response.ok) {
       // Login successful
       localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/');
+      router.push('/products');
     } else {
       alert(data.error);
     }
