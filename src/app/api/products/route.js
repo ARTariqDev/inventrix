@@ -200,3 +200,142 @@ export async function POST(request) {
     );
   }
 }
+
+export async function PUT(request) {
+  try {
+    await connectDB();
+
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id, updates } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const { name, description, category, price, stock, isActive } = updates;
+
+    // Validation
+    if (!name || !category || price === undefined || stock === undefined) {
+      return NextResponse.json(
+        { error: "Name, category, price, and stock are required" },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(price) || price < 0) {
+      return NextResponse.json(
+        { error: "Price must be a valid non-negative number" },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(stock) || stock < 0 || !Number.isInteger(Number(stock))) {
+      return NextResponse.json(
+        { error: "Stock must be a valid non-negative integer" },
+        { status: 400 }
+      );
+    }
+
+    // Find product and verify ownership
+    const existingProduct = await Product.findOne({ _id: id, userId });
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: "Product not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    // Update product
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        name: name.trim(),
+        description: description?.trim() || "",
+        category: category.trim(),
+        price: Number(price),
+        stock: Number(stock),
+        isActive: isActive !== undefined ? isActive : existingProduct.isActive
+      },
+      { new: true, runValidators: true }
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Product updated successfully",
+      product: updatedProduct,
+    });
+
+  } catch (error) {
+    console.error("Error updating product:", error);
+    
+    if (error.name === "ValidationError") {
+      const validationErrors = Object.values(error.errors).map(
+        (err) => err.message
+      );
+      return NextResponse.json(
+        { error: "Validation failed", details: validationErrors },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to update product" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    await connectDB();
+
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Product ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find and delete product (verify ownership)
+    const deletedProduct = await Product.findOneAndDelete({ 
+      _id: id, 
+      userId 
+    });
+
+    if (!deletedProduct) {
+      return NextResponse.json(
+        { error: "Product not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Product deleted successfully",
+      product: deletedProduct
+    });
+
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return NextResponse.json(
+      { error: "Failed to delete product" },
+      { status: 500 }
+    );
+  }
+}
