@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package } from "lucide-react";
 import ProductCard from "../components/ProductCard";
+import SideBar from "../components/SideBar";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -210,6 +211,8 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-6">
       <div className="max-w-7xl mx-auto">
+
+        <SideBar />
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}

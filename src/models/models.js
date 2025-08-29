@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
-      select: false, // don’t return password by default
+      select: false, // don't return password by default
     },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     isActive: { type: Boolean, default: true },
@@ -126,10 +126,125 @@ ProductSchema.pre("save", async function (next) {
   }
 });
 
+/* -------------------- Order Schema -------------------- */
+const OrderSchema = new mongoose.Schema(
+  {
+    orderId: { type: String, unique: true, uppercase: true },
+    orderItems: [
+      {
+        productId: { 
+          type: mongoose.Schema.Types.ObjectId, 
+          ref: "Product", 
+          required: true 
+        },
+        productName: { type: String, required: true, trim: true },
+        productPrice: { type: Number, required: true, min: 0 },
+        quantity: { 
+          type: Number, 
+          required: true, 
+          min: [1, "Quantity must be at least 1"],
+          validate: {
+            validator: Number.isInteger,
+            message: "Quantity must be a whole number",
+          }
+        },
+        itemTotal: { type: Number, required: true, min: 0 }
+      }
+    ],
+    orderTotal: {
+      type: Number,
+      required: true,
+      min: [0, "Order total cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Order total must be a positive number with at most 2 decimal places",
+      },
+    },
+    orderDate: { type: Date, default: Date.now },
+    orderTime: { type: String, required: true },
+    receivedBy: { type: String, required: true, trim: true, maxlength: 100 },
+    orderStatus: { 
+      type: String, 
+      enum: ["confirmed", "shipped", "delivered"], 
+      default: "confirmed" 
+    },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userName: { type: String, required: true, trim: true, maxlength: 100 },
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+OrderSchema.index({ orderId: 1 });
+OrderSchema.index({ userId: 1 });
+OrderSchema.index({ orderStatus: 1 });
+OrderSchema.index({ orderDate: 1 });
+OrderSchema.index({ isActive: 1 });
+
+/* ✅ Pre-save hook to auto-generate Order ID, set userName, and calculate totals */
+OrderSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      // Auto-increment counter for order ID
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: "orderId" },
+        { $inc: { sequence_value: 1 } },
+        { new: true, upsert: true }
+      );
+
+      // Generate Order ID in format ORDXXXXX
+      this.orderId = `ORD${String(counter.sequence_value).padStart(5, '0')}`;
+
+      // Auto-populate userName if missing
+      if (this.userId && !this.userName) {
+        const User = mongoose.models.User || mongoose.model("User", UserSchema);
+        const user = await User.findById(this.userId).select("fullName");
+        if (user) this.userName = user.fullName;
+      }
+
+      // Set order time if not provided
+      if (!this.orderTime) {
+        const now = new Date();
+        this.orderTime = now.toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
+      }
+
+      // Calculate item totals and order total
+      let calculatedTotal = 0;
+      for (let item of this.orderItems) {
+        item.itemTotal = item.productPrice * item.quantity;
+        calculatedTotal += item.itemTotal;
+      }
+      this.orderTotal = calculatedTotal;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
+    // If updating an existing order, recalculate totals if items changed
+    if (this.isModified('orderItems')) {
+      let calculatedTotal = 0;
+      for (let item of this.orderItems) {
+        item.itemTotal = item.productPrice * item.quantity;
+        calculatedTotal += item.itemTotal;
+      }
+      this.orderTotal = calculatedTotal;
+    }
+    next();
+  }
+});
+
 /* -------------------- Models -------------------- */
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
-const Product =
-  mongoose.models.Product || mongoose.model("Product", ProductSchema);
+const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
+const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
 
 /* -------------------- DB Connection -------------------- */
 export async function connectDB() {
@@ -145,4 +260,4 @@ export async function connectDB() {
   }
 }
 
-export { User, Product };
+export { User, Product, Order };
