@@ -7,7 +7,7 @@ dotenv.config();
 /* -------------------- Counter Schema -------------------- */
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
-  sequence_value: { type: Number, default: 11000 } // start from 11000
+  sequence_value: { type: Number, default: 0 } // start from 0, will increment to 1 for first item
 });
 
 const Counter =
@@ -96,19 +96,22 @@ ProductSchema.index({ name: 1 });
 ProductSchema.index({ isActive: 1 });
 ProductSchema.index({ userId: 1 });
 
-/* ✅ Pre-save hook to auto-generate SKU and set userName */
+/* ✅ Pre-save hook to auto-generate user-specific SKU */
 ProductSchema.pre("save", async function (next) {
   if (this.isNew) {
     try {
-      // Auto-increment counter
+      // Use user-specific counter ID
+      const counterKey = `productId_${this.userId}`;
+      
+      // Auto-increment counter per user
       const counter = await Counter.findByIdAndUpdate(
-        { _id: "productId" },
+        { _id: counterKey },
         { $inc: { sequence_value: 1 } },
         { new: true, upsert: true }
       );
 
-      // Generate SKU in format PRODXXXXX
-      this.sku = `PROD${String(counter.sequence_value)}`;
+      // Generate SKU in format PROD00001
+      this.sku = `PROD${String(counter.sequence_value).padStart(5, '0')}`;
 
       // Auto-populate userName if missing
       if (this.userId && !this.userName) {
@@ -183,18 +186,21 @@ OrderSchema.index({ orderStatus: 1 });
 OrderSchema.index({ orderDate: 1 });
 OrderSchema.index({ isActive: 1 });
 
-/* ✅ Pre-save hook to auto-generate Order ID, set userName, and calculate totals */
+/* ✅ Pre-save hook to auto-generate user-specific Order ID */
 OrderSchema.pre("save", async function (next) {
   if (this.isNew) {
     try {
-      // Auto-increment counter for order ID
+      // Use user-specific counter ID
+      const counterKey = `orderId_${this.userId}`;
+      
+      // Auto-increment counter per user
       const counter = await Counter.findByIdAndUpdate(
-        { _id: "orderId" },
+        { _id: counterKey },
         { $inc: { sequence_value: 1 } },
         { new: true, upsert: true }
       );
 
-      // Generate Order ID in format ORDXXXXX
+      // Generate Order ID in format ORD00001
       this.orderId = `ORD${String(counter.sequence_value).padStart(5, '0')}`;
 
       // Auto-populate userName if missing
@@ -260,4 +266,6 @@ export async function connectDB() {
   }
 }
 
-export { User, Product, Order };
+
+
+export { User, Product, Order, Counter };
