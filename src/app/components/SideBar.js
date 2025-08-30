@@ -4,7 +4,7 @@ import {
   BarChart3, 
   Package, 
   ShoppingCart, 
-  TrendingUp, 
+  FileText, 
   Menu, 
   X 
 } from "lucide-react";
@@ -50,7 +50,7 @@ export default function Sidebar({ onExpandChange }) {
     {
       name: "Dashboard",
       icon: BarChart3,
-      href: "/dashboard"
+      href: "/stats"
     },
     {
       name: "Inventory",
@@ -63,9 +63,9 @@ export default function Sidebar({ onExpandChange }) {
       href: "/orders"
     },
     {
-      name: "Insights",
-      icon: TrendingUp,
-      href: "/stats"
+      name: "Invoices",
+      icon: FileText,
+      href: "/invoices"
     }
   ];
 
