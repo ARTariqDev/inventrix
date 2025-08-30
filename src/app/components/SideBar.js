@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BarChart3, 
@@ -9,8 +9,42 @@ import {
   X 
 } from "lucide-react";
 
-export default function Sidebar() {
+export default function Sidebar({ onExpandChange }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Check for mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-collapse on mobile
+      if (mobile && isExpanded) {
+        setIsExpanded(false);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [isExpanded]);
+
+  // Notify parent component when sidebar expands/collapses
+  useEffect(() => {
+    if (onExpandChange) {
+      onExpandChange(isExpanded);
+    }
+  }, [isExpanded, onExpandChange]);
+
+  const toggleSidebar = () => {
+    if (isAnimating) return; // Prevent multiple clicks during animation
+    setIsAnimating(true);
+    setIsExpanded(!isExpanded);
+    
+    // Reset animation lock after animation completes
+    setTimeout(() => setIsAnimating(false), 300);
+  };
 
   const menuItems = [
     {
@@ -37,14 +71,14 @@ export default function Sidebar() {
 
   const sidebarVariants = {
     expanded: {
-      width: "250px",
+      width: isMobile ? "250px" : "250px",
       transition: {
         duration: 0.3,
         ease: "easeInOut"
       }
     },
     collapsed: {
-      width: "70px",
+      width: isMobile ? "0px" : "70px",
       transition: {
         duration: 0.3,
         ease: "easeInOut"
@@ -57,31 +91,56 @@ export default function Sidebar() {
       opacity: 1,
       x: 0,
       transition: {
-        duration: 0.2,
-        delay: 0.1
+        duration: 0.25,
+        delay: 0.15,
+        ease: "easeOut"
       }
     },
     collapsed: {
       opacity: 0,
-      x: -20,
+      x: -10,
       transition: {
-        duration: 0.15
+        duration: 0.1,
+        ease: "easeIn"
       }
     }
   };
 
   return (
-    <motion.div
-      variants={sidebarVariants}
-      animate={isExpanded ? "expanded" : "collapsed"}
-      className="fixed left-0 top-0 h-screen bg-gradient-to-b from-purple-600 via-purple-700 to-pink-600 shadow-xl z-40 flex flex-col"
-    >
+    <>
+      {/* Overlay for mobile when sidebar is expanded */}
+      <AnimatePresence>
+        {isMobile && isExpanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={toggleSidebar}
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        variants={sidebarVariants}
+        animate={isExpanded ? "expanded" : "collapsed"}
+        onAnimationComplete={() => setIsAnimating(false)}
+        className={`
+          fixed left-0 top-0 h-screen bg-gradient-to-b from-purple-600 via-purple-700 to-pink-600 shadow-xl z-40 flex flex-col
+          ${isMobile ? 'transform transition-transform duration-300' : ''}
+          ${isMobile && !isExpanded ? '-translate-x-full' : 'translate-x-0'}
+        `}
+        style={{
+          width: isMobile ? (isExpanded ? '250px' : '0px') : undefined
+        }}
+      >
       {/* Header Section */}
       <div className="p-4 border-b border-purple-400/30">
         <div className="flex items-center justify-between">
           <AnimatePresence mode="wait">
             {isExpanded && (
               <motion.div
+                key="brand-content"
                 variants={contentVariants}
                 initial="collapsed"
                 animate="expanded"
@@ -97,10 +156,11 @@ export default function Sidebar() {
           </AnimatePresence>
           
           <motion.button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            onClick={toggleSidebar}
+            disabled={isAnimating}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors ${isAnimating ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            whileHover={!isAnimating ? { scale: 1.05 } : {}}
+            whileTap={!isAnimating ? { scale: 0.95 } : {}}
           >
             <motion.div
               animate={{ rotate: isExpanded ? 0 : 180 }}
@@ -149,6 +209,7 @@ export default function Sidebar() {
                 <AnimatePresence mode="wait">
                   {isExpanded && (
                     <motion.span
+                      key={`nav-${item.name}`}
                       variants={contentVariants}
                       initial="collapsed"
                       animate="expanded"
@@ -185,6 +246,7 @@ export default function Sidebar() {
         <AnimatePresence mode="wait">
           {isExpanded && (
             <motion.div
+              key="footer-content"
               variants={contentVariants}
               initial="collapsed"
               animate="expanded"
@@ -202,5 +264,6 @@ export default function Sidebar() {
       {/* Glowing border effect */}
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent"></div>
     </motion.div>
+    </>
   );
 }

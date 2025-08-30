@@ -1,4 +1,5 @@
-import { connectDB, Order, Product } from "@/models/models";
+import { connectDB, Order, Product, User } from "@/models/models";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 // GET - Fetch all orders for the current user
@@ -6,13 +7,11 @@ export async function GET(request) {
   try {
     await connectDB();
     
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId'); // You'll need to pass this from your auth system
-    
+    const userId = cookies().get("userId")?.value;
     if (!userId) {
       return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
+        { error: "User not authenticated" },
+        { status: 401 }
       );
     }
 
@@ -41,24 +40,40 @@ export async function POST(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderItems, receivedBy, userId, orderStatus = "confirmed" } = body;
-
+    const { orderItems, receivedBy, orderStatus = "confirmed" } = body;
+    const userId = cookies().get("userId")?.value;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User not authenticated" },
+        { status: 401 }
+      );
+    }
     if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
       return NextResponse.json(
         { error: "Order items are required" },
         { status: 400 }
       );
     }
-
-    if (!receivedBy || !userId) {
+    if (!receivedBy) {
       return NextResponse.json(
-        { error: "Received by and User ID are required" },
+        { error: "Received by is required" },
         { status: 400 }
+      );
+    }
+
+    // Get user information for userName
+    const user = await User.findById(userId).select('fullName');
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
     // Validate and enrich order items with product data
     const enrichedItems = [];
+    let calculatedTotal = 0;
+    
     for (const item of orderItems) {
       const product = await Product.findById(item.productId).select('name price stock');
       
@@ -76,20 +91,36 @@ export async function POST(request) {
         );
       }
 
+      const itemTotal = product.price * item.quantity;
+      calculatedTotal += itemTotal;
+
       enrichedItems.push({
         productId: item.productId,
         productName: product.name,
         productPrice: product.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        itemTotal: itemTotal
       });
     }
 
-    // Create the order (totals will be calculated automatically)
+    // Generate current time
+    const now = new Date();
+    const orderTime = now.toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+
+    // Create the order with all required fields
     const order = new Order({
       orderItems: enrichedItems,
+      orderTotal: calculatedTotal,
+      orderTime: orderTime,
       receivedBy,
       orderStatus,
-      userId
+      userId,
+      userName: user.fullName
     });
 
     await order.save();
@@ -127,6 +158,13 @@ export async function PUT(request) {
     
     const body = await request.json();
     const { orderId, orderItems, receivedBy, orderStatus } = body;
+    const userId = cookies().get("userId")?.value;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User not authenticated" },
+        { status: 401 }
+      );
+    }
 
     if (!orderId) {
       return NextResponse.json(
@@ -155,6 +193,8 @@ export async function PUT(request) {
 
       // Validate and enrich new order items
       const enrichedItems = [];
+      let calculatedTotal = 0;
+      
       for (const item of orderItems) {
         const product = await Product.findById(item.productId).select('name price stock');
         
@@ -172,15 +212,20 @@ export async function PUT(request) {
           );
         }
 
+        const itemTotal = product.price * item.quantity;
+        calculatedTotal += itemTotal;
+
         enrichedItems.push({
           productId: item.productId,
           productName: product.name,
           productPrice: product.price,
-          quantity: item.quantity
+          quantity: item.quantity,
+          itemTotal: itemTotal
         });
       }
 
       existingOrder.orderItems = enrichedItems;
+      existingOrder.orderTotal = calculatedTotal;
 
       // Update product stock with new quantities
       for (const item of enrichedItems) {
@@ -220,6 +265,13 @@ export async function DELETE(request) {
     
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
+    const userId = cookies().get("userId")?.value;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User not authenticated" },
+        { status: 401 }
+      );
+    }
 
     if (!orderId) {
       return NextResponse.json(

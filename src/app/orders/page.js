@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, DollarSign, User, Clock, Truck, CheckCircle } from "lucide-react";
-import Sidebar from "../components/SideBar";
+import Layout from "../components/Layout";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -28,13 +29,12 @@ export default function OrdersPage() {
     orderStatus: "confirmed"
   });
 
-  // Mock userId - replace with actual auth
-  const userId = "USER_ID_HERE"; // You'll replace this with actual user ID from auth
+  // No need to send userId; backend uses cookie
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/orders?userId=${userId}`);
+      const response = await fetch(`/api/orders`);
       if (response.ok) {
         const data = await response.json();
         setOrders(data.orders || []);
@@ -219,7 +219,6 @@ export default function OrdersPage() {
     try {
       const orderData = {
         ...orderForm,
-        userId,
         orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity > 0)
       };
 
@@ -228,9 +227,8 @@ export default function OrdersPage() {
         return;
       }
 
-      const url = editingOrder ? "/api/orders" : "/api/orders";
+      const url = "/api/orders";
       const method = editingOrder ? "PUT" : "POST";
-      
       if (editingOrder) {
         orderData.orderId = editingOrder._id;
       }
@@ -296,15 +294,16 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
-      </div>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-6">
-    <Sidebar />
+    <Layout>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -770,6 +769,6 @@ export default function OrdersPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </Layout>
   );
 }
