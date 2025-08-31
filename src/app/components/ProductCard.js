@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Save, X, DollarSign, Package, Calendar, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Save, X, Banknote, Package, Calendar, Eye, EyeOff } from "lucide-react";
 
 export default function ProductCard({ product, onUpdate, onDelete, getCategoryColor: externalGetCategoryColor }) {
   const [editingId, setEditingId] = useState(null);
@@ -241,7 +241,7 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
                 Price *
               </label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Banknote className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
                   value={editForm.price || ''}
@@ -375,9 +375,9 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700">
-            <DollarSign size={18} className="text-green-500" />
+            <Banknote size={18} className="text-green-500" />
             <span className="text-2xl font-bold text-green-600">
-              ${Number(product.price).toFixed(2)}
+              Rs {Number(product.price).toFixed(2)}
             </span>
           </div>
           

@@ -196,20 +196,6 @@ export async function POST(request) {
       );
     }
 
-    if (error.code === 11000) {
-      // Check if it's a SKU duplication error for this user
-      if (error.message.includes('sku')) {
-        return NextResponse.json(
-          { error: "Product SKU already exists for this user" },
-          { status: 400 }
-        );
-      }
-      return NextResponse.json(
-        { error: "Duplicate key error" },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
       { error: "Failed to create product" },
       { status: 500 }
@@ -236,40 +222,9 @@ export async function PUT(request) {
       );
     }
 
-    // Find product and verify ownership first
-    const existingProduct = await Product.findOne({ _id: id, userId });
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: "Product not found or unauthorized" },
-        { status: 404 }
-      );
-    }
-
-    // If only updating stock, we can skip other validations
-    if (updates.stock !== undefined && Object.keys(updates).length === 1) {
-      if (isNaN(updates.stock) || updates.stock < 0 || !Number.isInteger(Number(updates.stock))) {
-        return NextResponse.json(
-          { error: "Stock must be a valid non-negative integer" },
-          { status: 400 }
-        );
-      }
-
-      const updatedProduct = await Product.findByIdAndUpdate(
-        id,
-        { stock: Number(updates.stock) },
-        { new: true, runValidators: true }
-      );
-
-      return NextResponse.json({
-        success: true,
-        message: "Product stock updated successfully",
-        product: updatedProduct,
-      });
-    }
-
-    // For full updates, validate all required fields
     const { name, description, category, price, stock, isActive } = updates;
 
+    // Validation
     if (!name || !category || price === undefined || stock === undefined) {
       return NextResponse.json(
         { error: "Name, category, price, and stock are required" },
@@ -291,7 +246,16 @@ export async function PUT(request) {
       );
     }
 
-    // Update product with all fields
+    // Find product and verify ownership
+    const existingProduct = await Product.findOne({ _id: id, userId });
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: "Product not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    // Update product
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {

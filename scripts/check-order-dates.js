@@ -18,7 +18,7 @@ async function checkOrderDates() {
     console.log('Found', orders.length, 'orders for user:', userId);
     
     orders.forEach((order, index) => {
-      console.log(`${index + 1}. ${order.orderId} - ${order.orderDate.toISOString()} - $${order.orderTotal}`);
+      console.log(`${index + 1}. ${order.orderId} - ${order.orderDate.toISOString()} - Rs ${order.orderTotal}`);
     });
 
     if (orders.length > 0) {

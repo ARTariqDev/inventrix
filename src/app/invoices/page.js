@@ -6,7 +6,7 @@ import {
   Download, 
   Search, 
   Calendar,
-  DollarSign,
+  Banknote,
   Package,
   User,
   Eye,
@@ -67,9 +67,9 @@ export default function InvoicesPage() {
   }, [orders, searchTerm]);
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'PKR'
     }).format(amount);
   };
 
@@ -198,8 +198,7 @@ export default function InvoicesPage() {
             </p>
           </div>
 
-
-          <div className="hidden md:block overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -253,7 +252,7 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm font-medium text-gray-900">
-                        <DollarSign className="w-4 h-4 mr-1" />
+                        <Banknote className="w-4 h-4 mr-1" />
                         {formatCurrency(order.orderTotal)}
                       </div>
                     </td>
@@ -275,55 +274,6 @@ export default function InvoicesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-
-          <div className="md:hidden divide-y divide-gray-200">
-            {filteredOrders.map((order) => (
-              <motion.div
-                key={order._id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center">
-                    <FileText className="w-5 h-5 text-purple-500 mr-3" />
-                    <div>
-                      <span className="text-sm font-medium text-gray-900 block">
-                        {order.orderId}
-                      </span>
-                      <div className="flex items-center text-xs text-gray-500 mt-1">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {formatDate(order.orderDate)}
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
-                    {order.orderStatus}
-                  </span>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <User className="w-4 h-4 mr-2" />
-                    <span>{order.receivedBy}</span>
-                  </div>
-                  <div className="flex items-center text-sm font-medium text-gray-900">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    <span>{formatCurrency(order.orderTotal)}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => openInvoiceModal(order)}
-                  className="w-full inline-flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Invoice
-                </button>
-              </motion.div>
-            ))}
           </div>
 
           {filteredOrders.length === 0 && (

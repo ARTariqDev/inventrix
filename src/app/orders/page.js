@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, DollarSign, User, Clock, Truck, CheckCircle, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, Banknote, User, Clock, Truck, CheckCircle, XCircle } from "lucide-react";
 import Layout from "../components/Layout";
 
 export default function OrdersPage() {
@@ -519,9 +519,9 @@ export default function OrdersPage() {
                   )}
                   
                   <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-gray-400" />
+                    <Banknote className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      <strong>Total:</strong> ${order.orderTotal.toFixed(2)}
+                      <strong>Total:</strong> Rs {order.orderTotal.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -536,7 +536,7 @@ export default function OrdersPage() {
                           {item.productName} × {item.quantity}
                         </span>
                         <span className="font-medium">
-                          ${item.itemTotal.toFixed(2)}
+                          Rs {item.itemTotal.toFixed(2)}
                         </span>
                       </div>
                     ))}
@@ -734,7 +734,7 @@ export default function OrdersPage() {
                               <option value="">Select a product</option>
                               {products.map((product) => (
                                 <option key={product._id} value={product._id}>
-                                  {product.name} - ${product.price} (Stock: {product.stock})
+                                  {product.name} - Rs {product.price} (Stock: {product.stock})
                                 </option>
                               ))}
                             </select>
@@ -783,7 +783,7 @@ export default function OrdersPage() {
                                   {product.name} × {item.quantity}
                                 </span>
                                 <span className="font-medium">
-                                  ${itemTotal.toFixed(2)}
+                                  Rs {itemTotal.toFixed(2)}
                                 </span>
                               </div>
                             );
@@ -792,7 +792,7 @@ export default function OrdersPage() {
                           <div className="flex justify-between font-bold">
                             <span>Total:</span>
                             <span>
-                              ${orderForm.orderItems
+                              Rs {orderForm.orderItems
                                 .filter(item => item.productId && item.quantity > 0)
                                 .reduce((total, item) => {
                                   const product = products.find(p => p._id === item.productId);

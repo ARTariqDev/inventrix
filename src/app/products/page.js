@@ -593,7 +593,7 @@ export default function ProductsPage() {
                         Price *
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">Rs</span>
                         <input
                           type="text"
                           value={newProductForm.price}

@@ -23,7 +23,7 @@ async function debugDatabase() {
     if (orders.length > 0) {
       console.log('Sample orders:');
       orders.slice(0, 3).forEach(order => {
-        console.log(`- ${order.orderId}: $${order.orderTotal} on ${order.orderDate.toDateString()}`);
+        console.log(`- ${order.orderId}: Rs ${order.orderTotal} on ${order.orderDate.toDateString()}`);
       });
 
       // Calculate total revenue

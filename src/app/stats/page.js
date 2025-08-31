@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
+  Banknote, 
   Package, 
   ShoppingCart, 
   AlertTriangle,
@@ -55,6 +55,7 @@ ChartJS.register(
 export default function StatsPage() {
   const router = useRouter();
   const [stats, setStats] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     period: "30",
@@ -64,6 +65,22 @@ export default function StatsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'recent-orders', 'low-stock', 'top-products'
   const [expandedData, setExpandedData] = useState(null);
+
+  // Fetch user information
+  const fetchUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/verify');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      router.push('/login');
+    }
+  }, [router]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -82,8 +99,9 @@ export default function StatsPage() {
   }, [filters]);
 
   useEffect(() => {
+    fetchUser();
     fetchStats();
-  }, [fetchStats]);
+  }, [fetchUser, fetchStats]);
 
   const [updatingStock, setUpdatingStock] = useState(new Set());
 
@@ -209,9 +227,9 @@ export default function StatsPage() {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'PKR'
     }).format(amount);
   };
 
@@ -507,7 +525,7 @@ export default function StatsPage() {
         >
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-              Business Insights
+              Welcome {user?.fullName || 'User'}
             </h1>
             <p className="text-gray-600">
               Analytics and performance metrics for your inventory
@@ -596,7 +614,7 @@ export default function StatsPage() {
             {
               title: "Total Revenue",
               value: formatCurrency(stats?.overview?.totalRevenue || 0),
-              icon: DollarSign,
+              icon: Banknote,
               color: "from-green-500 to-emerald-500",
               change: "+12.5%"
             },

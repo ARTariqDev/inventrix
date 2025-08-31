@@ -158,7 +158,7 @@ async function addSampleData() {
         const order = new Order(orderData);
         const savedOrder = await order.save();
         createdOrders.push(savedOrder);
-        console.log(`Created order ${savedOrder.orderId} - $${savedOrder.orderTotal}`);
+        console.log(`Created order ${savedOrder.orderId} - Rs ${savedOrder.orderTotal}`);
       } catch (error) {
         console.error('Error creating order:', error.message);
       }

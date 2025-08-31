@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "../components/Button";
 
@@ -8,28 +8,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/verify');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            localStorage.setItem('user', JSON.stringify(data.user));
-            router.push('/stats');
-            return;
-          }
-        }
-      } catch (error) {
-        console.log('Not authenticated, showing login page');
-      }
-      setIsChecking(false);
-    };
-
-    checkAuth();
-  }, [router]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -65,14 +43,6 @@ export default function LoginPage() {
 
   setLoading(false);
 };
-
-  if (isChecking) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
 
   return (
     <motion.main
@@ -143,6 +113,18 @@ export default function LoginPage() {
           Signup
         </a>
       </p>
+
+      {/* Footer */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 1.5 }}
+        className="absolute bottom-4 left-1/2 transform -translate-x-1/2"
+      >
+        <p className="text-sm text-gray-500">
+          @Powered By Cybtrix Systems
+        </p>
+      </motion.div>
     </motion.main>
   );
 }

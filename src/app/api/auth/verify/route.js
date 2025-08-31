@@ -1,6 +1,3 @@
-// I handle authentication verification for persistent login sessions
-// This route checks if the user's session cookie is valid and returns user data
-// I provide seamless authentication checking without requiring password re-entry
 import { connectDB, User } from "@/models/models";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -22,16 +19,8 @@ export async function GET() {
     const user = await User.findById(userId).select("-password");
 
     if (!user || !user.isActive) {
-      cookieStore.set("userId", "", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 0,
-      });
-
       return NextResponse.json(
-        { error: "Invalid or expired session" },
+        { error: "User not found or inactive" },
         { status: 401 }
       );
     }
@@ -54,15 +43,19 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Auth verification error:", error);
+    console.error("Verify error:", error);
 
     return NextResponse.json(
       {
-        error: "An error occurred during authentication verification",
+        error: "An error occurred during verification",
         details:
           process.env.NODE_ENV === "development" ? error.message : undefined,
       },
       { status: 500 }
     );
   }
+}
+
+export async function POST() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
