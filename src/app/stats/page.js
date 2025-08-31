@@ -16,7 +16,9 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Eye
+  Eye,
+  Plus,
+  Minus
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -82,6 +84,47 @@ export default function StatsPage() {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  const updateProductStock = async (productId, newStock) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stock: newStock }),
+      });
+
+      if (response.ok) {
+        // Update the expanded data to reflect the change
+        setExpandedData(prev => ({
+          ...prev,
+          products: prev.products.map(product => 
+            product._id === productId 
+              ? { ...product, stock: newStock }
+              : product
+          )
+        }));
+        
+        // Also update stats if the product is in lowStockProducts
+        setStats(prev => ({
+          ...prev,
+          lowStockProducts: prev.lowStockProducts.map(product =>
+            product._id === productId
+              ? { ...product, stock: newStock }
+              : product
+          )
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to update product stock:", error);
+    }
+  };
+
+  const handleStockChange = (productId, currentStock, increment) => {
+    const newStock = increment ? currentStock + 1 : Math.max(0, currentStock - 1);
+    updateProductStock(productId, newStock);
+  };
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -284,7 +327,7 @@ export default function StatsPage() {
                         {product.stock} left
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
                       <div className="w-full max-w-20 bg-gray-200 rounded-full h-2 ml-3">
                         <div 
@@ -293,6 +336,37 @@ export default function StatsPage() {
                           }`}
                           style={{ width: `${Math.min((product.stock / 20) * 100, 100)}%` }}
                         ></div>
+                      </div>
+                    </div>
+                    
+                    {/* Stock Control Buttons */}
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleStockChange(product._id, product.stock, false)}
+                          disabled={product.stock <= 0}
+                          className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600">Stock:</span>
+                          <span className="font-semibold text-gray-900 min-w-[2rem] text-center">
+                            {product.stock}
+                          </span>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleStockChange(product._id, product.stock, true)}
+                          className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500">
+                        Quick adjust
                       </div>
                     </div>
                   </div>
@@ -853,7 +927,7 @@ export default function StatsPage() {
               {stats?.lowStockProducts?.length > 0 ? (
                 stats.lowStockProducts.slice(0, 4).map((product) => (
                   <div key={product._id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium text-gray-900 text-sm">
                         {product.name}
                       </div>
@@ -861,7 +935,30 @@ export default function StatsPage() {
                         {product.category}
                       </div>
                     </div>
-                    <div className="text-right">
+                    
+                    <div className="flex items-center gap-3">
+                      {/* Stock Control */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleStockChange(product._id, product.stock, false)}
+                          disabled={product.stock <= 0}
+                          className="w-6 h-6 flex items-center justify-center bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        
+                        <span className="min-w-[2rem] text-center text-sm font-medium text-gray-900">
+                          {product.stock}
+                        </span>
+                        
+                        <button
+                          onClick={() => handleStockChange(product._id, product.stock, true)}
+                          className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
                       <span className="inline-block px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
                         {product.stock} left
                       </span>
