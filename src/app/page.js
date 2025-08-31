@@ -17,7 +17,7 @@ export default function LandingPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.1 }}
-        className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12"
+        className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -33,7 +33,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="font-mono text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] font-extrabold 
+          className="font-mono text-4xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[10rem] font-extrabold 
                      bg-gradient-to-r from-purple-600 via-pink-500 to-fuchsia-500 
                      bg-clip-text text-transparent animate-gradient-x"
         >
@@ -45,7 +45,7 @@ export default function LandingPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.5 }}
-        className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-[#a855f7]/90 leading-relaxed max-w-xs sm:max-w-md md:max-w-lg lg:max-w-3xl mb-8 sm:mb-10 md:mb-12 px-4"
+        className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#a855f7]/90 leading-relaxed max-w-xs sm:max-w-md md:max-w-lg lg:max-w-3xl mb-6 sm:mb-8 md:mb-10 px-4"
       >
         Your all-in-one inventory management system to keep everything
         organized, simple, and scalable.
@@ -81,7 +81,7 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 1.2 }}
-        className="mt-8 mb-4 md:absolute md:bottom-4 md:left-1/2 md:transform md:-translate-x-1/2"
+        className="mt-12 mb-6 md:absolute md:bottom-4 md:left-1/2 md:transform md:-translate-x-1/2"
       >
         <p className="text-sm text-gray-500">
           @Powered By Cybitrix Systems
