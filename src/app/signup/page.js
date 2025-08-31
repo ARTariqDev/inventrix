@@ -50,124 +50,112 @@ export default function SignupPage() {
   };
 
   return (
-    <motion.main
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 1.2 }}
-      className="flex flex-col items-center justify-center min-h-screen px-6 text-center"
-    >
+    <div className="min-h-screen px-6 text-center flex flex-col">
+      {/* Content Container */}
+      <div className="flex-1 flex flex-col items-center justify-center py-8">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="font-mono text-xl font-extrabold mb-3 text-center
+                     bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 
+                     bg-clip-text text-transparent"
+        >
+          SignUp
+        </motion.h1>
 
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-        className="font-mono text-[7rem] font-extrabold mb-3 
-                   bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 
-                   bg-clip-text text-transparent animate-gradient-x"
-      >
-        SignUp
-      </motion.h1>
+        <motion.form
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="bg-white/80 backdrop-blur-md shadow-lg rounded-xl p-3 w-full max-w-xs flex flex-col gap-2"
+        >
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              placeholder="John Doe"
+              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            />
+          </div>
 
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              placeholder="you@example.com"
+              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            />
+          </div>
 
-      <motion.form
-        onSubmit={handleSubmit}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="bg-white/80 backdrop-blur-md shadow-lg rounded-2xl p-8 w-full max-w-md flex flex-col gap-6"
-      >
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            />
+          </div>
 
-        <div className="text-left">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Full Name
-          </label>
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            placeholder="John Doe"
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Confirm</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            />
+          </div>
+
+          <Button
+            text="Create Account"
+            color="#ffffff"
+            textColor="#a855f7"
+            glowColor="#ec4899"
+            rippleColor="rgba(0,0,0,0.01)"
           />
-        </div>
+        </motion.form>
 
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 1.0 }}
+          className="mt-2 text-xs text-gray-600 text-center"
+        >
+          Already have an account?{" "}
+          <a href="/login" className="text-pink-500 hover:underline">
+            Login
+          </a>
+        </motion.p>
+      </div>
 
-        <div className="text-left">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Email Address
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            placeholder="you@example.com"
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
-          />
-        </div>
-
-
-        <div className="text-left">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Password
-          </label>
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            placeholder="password..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
-          />
-        </div>
-
-        <div className="text-left">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            name="confirmPassword"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            required
-            placeholder="password..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
-          />
-        </div>
-
-
-        <Button
-          text="Create Account"
-          color="#ffffff"
-          textColor="#a855f7"
-          glowColor="#ec4899"
-          rippleColor="rgba(0,0,0,0.01)"
-        />
-      </motion.form>
-
-
-      <p className="mt-6 text-sm text-gray-600">
-        Already have an account?{" "}
-        <a href="/login" className="text-pink-500 hover:underline">
-          Login
-        </a>
-      </p>
-
-      {/* Footer */}
+      {/* Footer - Always at bottom, never overlaps */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 1.5 }}
-        className="mt-8 mb-4 md:absolute md:bottom-4 md:left-1/2 md:transform md:-translate-x-1/2"
+        className="py-4 mt-auto"
       >
-        <p className="text-sm text-gray-500">
+        <p className="text-xs text-gray-500">
           @Powered By Cybitrix Systems
         </p>
       </motion.div>
-    </motion.main>
+    </div>
   );
 }

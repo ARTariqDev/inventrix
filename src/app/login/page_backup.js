@@ -64,66 +64,67 @@ export default function LoginPage() {
           transition={{ duration: 0.8, delay: 0.5 }}
           className="bg-white/80 backdrop-blur-md shadow-lg rounded-xl p-3 w-full max-w-xs flex flex-col gap-2"
         >
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              placeholder="you@example.com"
-              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                placeholder="you@example.com"
+                className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                placeholder="••••••••"
+                className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+            </div>
+
+            <Button
+              text={loading ? "Logging in..." : "Login"}
+              color="#ffffff"
+              textColor="#a855f7"
+              glowColor="#ec4899"
+              rippleColor="rgba(255,255,255,0.2)"
+              disabled={loading}
             />
-          </div>
+          </motion.form>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              placeholder="••••••••"
-              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
-            />
-          </div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 1.0 }}
+            className="mt-2 text-xs text-gray-600 text-center"
+          >
+            Don&apos;t have an account?{" "}
+            <a href="/signup" className="text-pink-500 hover:underline">
+              Signup
+            </a>
+          </motion.p>
+        </div>
 
-          <Button
-            text={loading ? "Logging in..." : "Login"}
-            color="#ffffff"
-            textColor="#a855f7"
-            glowColor="#ec4899"
-            rippleColor="rgba(255,255,255,0.2)"
-            disabled={loading}
-          />
-        </motion.form>
-
-        <motion.p
+        {/* Footer - Always at bottom, never overlaps */}
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 1.0 }}
-          className="mt-2 text-xs text-gray-600 text-center"
+          transition={{ duration: 0.5, delay: 1.5 }}
+          className="py-4 mt-auto"
         >
-          Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-pink-500 hover:underline">
-            Signup
-          </a>
-        </motion.p>
+          <p className="text-xs text-gray-500">
+            @Powered By Cybitrix Systems
+          </p>
+        </motion.div>
       </div>
-
-      {/* Footer - Always at bottom, never overlaps */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 1.5 }}
-        className="py-4 mt-auto"
-      >
-        <p className="text-xs text-gray-500">
-          @Powered By Cybitrix Systems
-        </p>
-      </motion.div>
     </div>
   );
 }

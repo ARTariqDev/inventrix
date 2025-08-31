@@ -645,28 +645,28 @@ export default function StatsPage() {
               value: formatCurrency(stats?.overview?.totalRevenue || 0),
               icon: Banknote,
               color: "from-green-500 to-emerald-500",
-              change: "+12.5%"
+              change: stats?.overview?.revenueChange
             },
             {
               title: "Total Orders",
               value: stats?.overview?.totalOrders || 0,
               icon: ShoppingCart,
               color: "from-blue-500 to-cyan-500",
-              change: "+8.2%"
+              change: stats?.overview?.ordersChange
             },
             {
               title: "Products",
               value: stats?.overview?.totalProducts || 0,
               icon: Package,
               color: "from-purple-500 to-pink-500",
-              change: "+3.1%"
+              change: stats?.overview?.productsChange
             },
             {
               title: "Avg Order Value",
               value: formatCurrency(stats?.overview?.avgOrderValue || 0),
               icon: TrendingUp,
               color: "from-orange-500 to-red-500",
-              change: "+5.7%"
+              change: stats?.overview?.avgOrderValueChange
             }
           ].map((card, index) => (
             <motion.div
@@ -680,9 +680,24 @@ export default function StatsPage() {
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${card.color} flex items-center justify-center`}>
                   <card.icon className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-sm text-green-600 font-medium">
-                  {card.change}
-                </span>
+                {card.change !== undefined && card.change !== null && !isNaN(card.change) ? (
+                  <div className="flex items-center gap-1">
+                    {card.change >= 0 ? (
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-600" />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      card.change >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {card.change >= 0 ? '+' : ''}{card.change.toFixed(1)}%
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400 font-medium">
+                    New
+                  </div>
+                )}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">
                 {card.value}

@@ -52,6 +52,28 @@ export async function GET(request) {
       productFilter.category = category;
     }
 
+    // Setup previous period for comparison
+    const previousStartDate = new Date(startDate);
+    const previousEndDate = new Date(startDate);
+    previousStartDate.setDate(previousStartDate.getDate() - parseInt(period));
+    
+    const previousOrderFilter = {
+      userId: userObjectId,
+      isActive: true,
+      orderDate: { $gte: previousStartDate, $lt: previousEndDate }
+    };
+
+    if (status !== "all") {
+      previousOrderFilter.orderStatus = status;
+    }
+
+    if (category !== "all") {
+      const categoryProductIds = allProducts
+        .filter(p => p.category === category)
+        .map(p => p._id);
+      previousOrderFilter["orderItems.productId"] = { $in: categoryProductIds };
+    }
+
     // Aggregate data
     const [
       totalOrders,
@@ -63,7 +85,10 @@ export async function GET(request) {
       categoryStats,
       dailyRevenue,
       statusDistribution,
-      monthlyTrends
+      monthlyTrends,
+      // Previous period data for comparison
+      previousOrders,
+      previousRevenue
     ] = await Promise.all([
       // Total orders count
       Order.countDocuments(orderFilter),
@@ -171,6 +196,14 @@ export async function GET(request) {
           }
         },
         { $sort: { "_id.year": 1, "_id.month": 1 } }
+      ]),
+
+      // Previous period data for comparison
+      Order.countDocuments(previousOrderFilter),
+
+      Order.aggregate([
+        { $match: previousOrderFilter },
+        { $group: { _id: null, total: { $sum: "$orderTotal" } } }
       ])
     ]);
 
@@ -201,6 +234,20 @@ export async function GET(request) {
       ? (totalRevenue[0]?.total || 0) / totalOrders 
       : 0;
 
+    // Calculate percentage changes
+    const currentRevenue = totalRevenue[0]?.total || 0;
+    const previousRevenueValue = previousRevenue[0]?.total || 0;
+    const previousAvgOrderValue = previousOrders > 0 ? previousRevenueValue / previousOrders : 0;
+
+    const calculateChange = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const revenueChange = calculateChange(currentRevenue, previousRevenueValue);
+    const ordersChange = calculateChange(totalOrders, previousOrders);
+    const avgOrderValueChange = calculateChange(avgOrderValue, previousAvgOrderValue);
+
     const totalStock = await Product.aggregate([
       { $match: productFilter },
       { $group: { _id: null, total: { $sum: "$stock" } } }
@@ -211,11 +258,16 @@ export async function GET(request) {
       stats: {
         overview: {
           totalOrders,
-          totalRevenue: totalRevenue[0]?.total || 0,
+          totalRevenue: currentRevenue,
           totalProducts,
           avgOrderValue,
           totalStock: totalStock[0]?.total || 0,
-          lowStockCount: lowStockProducts.length
+          lowStockCount: lowStockProducts.length,
+          // Percentage changes
+          revenueChange,
+          ordersChange,
+          avgOrderValueChange,
+          productsChange: 0 // Products don't change much period to period
         },
         recentOrders,
         lowStockProducts,
