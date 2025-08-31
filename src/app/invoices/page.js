@@ -48,7 +48,7 @@ export default function InvoicesPage() {
     fetchOrders();
   }, []);
 
-  // Filter orders based on search
+
   useEffect(() => {
     let filtered = [...orders];
 
@@ -149,7 +149,7 @@ export default function InvoicesPage() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -163,7 +163,7 @@ export default function InvoicesPage() {
           </p>
         </motion.div>
 
-        {/* Search and Filters */}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -183,7 +183,7 @@ export default function InvoicesPage() {
           </div>
         </motion.div>
 
-        {/* Orders List */}
+     
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -198,7 +198,7 @@ export default function InvoicesPage() {
             </p>
           </div>
 
-          {/* Desktop Table View */}
+
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -277,7 +277,7 @@ export default function InvoicesPage() {
             </table>
           </div>
 
-          {/* Mobile Card View */}
+
           <div className="md:hidden divide-y divide-gray-200">
             {filteredOrders.map((order) => (
               <motion.div
@@ -339,7 +339,7 @@ export default function InvoicesPage() {
           )}
         </motion.div>
 
-        {/* Invoice Modal */}
+
         <AnimatePresence>
           {showInvoiceModal && selectedOrder && (
             <motion.div
@@ -358,7 +358,7 @@ export default function InvoicesPage() {
                 className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Modal Header */}
+
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                   <h2 className="text-2xl font-bold text-gray-900">
                     Invoice - {selectedOrder.orderId}
@@ -390,10 +390,10 @@ export default function InvoicesPage() {
                   </div>
                 </div>
 
-                {/* Invoice Content */}
+
                 <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
                   <div ref={invoiceRef} className="p-8 bg-white">
-                    {/* Invoice Header */}
+
                     <div className="flex justify-between items-start mb-8">
                       <div>
                         <h1 className="text-3xl font-bold text-purple-600 mb-2">INVOICE</h1>
@@ -415,7 +415,7 @@ export default function InvoicesPage() {
                       </div>
                     </div>
 
-                    {/* Bill To Section */}
+
                     <div className="grid grid-cols-2 gap-8 mb-8">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-3">Bill To:</h3>
@@ -452,7 +452,7 @@ export default function InvoicesPage() {
                       </div>
                     </div>
 
-                    {/* Items Table */}
+
                     <div className="mb-8">
                       <table className="w-full border-collapse">
                         <thead>
@@ -486,7 +486,7 @@ export default function InvoicesPage() {
                       </table>
                     </div>
 
-                    {/* Total Section */}
+     
                     <div className="flex justify-end mb-8">
                       <div className="w-64">
                         <div className="border-t-2 border-gray-300 pt-4">
@@ -500,7 +500,6 @@ export default function InvoicesPage() {
                       </div>
                     </div>
 
-                    {/* Footer */}
                     <div className="border-t border-gray-200 pt-6 text-center text-gray-500">
                       <p>Thank you for your business!</p>
                       <p className="text-sm mt-2">This is a digitally generated invoice from Inventrix</p>
