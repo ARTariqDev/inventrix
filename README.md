@@ -1706,7 +1706,7 @@ This project is licensed under the MIT License.
 ### Environment Setup
 ```env
 # Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/inventrix
+MONGODB_URI=your-mongodb-connection-string
 
 # Authentication
 JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters

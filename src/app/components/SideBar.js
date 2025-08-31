@@ -337,17 +337,6 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
               title="Logout"
             >
               <LogOut size={18} />
-              
-              {/* Tooltip */}
-              <motion.div
-                initial={{ opacity: 0, x: -10, scale: 0.8 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -10, scale: 0.8 }}
-                className="absolute left-16 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-              >
-                Logout
-                <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-0 h-0 border-r-4 border-r-gray-900 border-t-4 border-t-transparent border-b-4 border-b-transparent"></div>
-              </motion.div>
             </motion.button>
           )}
         </AnimatePresence>
