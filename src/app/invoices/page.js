@@ -198,7 +198,8 @@ export default function InvoicesPage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -274,6 +275,54 @@ export default function InvoicesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden p-4 space-y-4">
+            {filteredOrders.map((order) => (
+              <motion.div
+                key={order._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+              >
+                {/* Header with Order ID and Status */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5 text-purple-500 mr-2" />
+                    <span className="font-semibold text-gray-900">{order.orderId}</span>
+                  </div>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
+                    {order.orderStatus}
+                  </span>
+                </div>
+
+                {/* Order Details */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                    <span>{formatDate(order.orderDate)}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <User className="w-4 h-4 mr-2 text-gray-400" />
+                    <span>{order.receivedBy}</span>
+                  </div>
+                  <div className="flex items-center text-sm font-medium text-gray-900">
+                    <Banknote className="w-4 h-4 mr-2 text-green-500" />
+                    <span>{formatCurrency(order.orderTotal)}</span>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => openInvoiceModal(order)}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Invoice
+                </button>
+              </motion.div>
+            ))}
           </div>
 
           {filteredOrders.length === 0 && (
