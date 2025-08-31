@@ -1,9 +1,12 @@
+// I create the ProductCard component for displaying and editing individual products
+// This component handles inline editing, deletion, and category color display
+// I provide real-time validation and smooth animations for user interactions
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Pencil, Trash2, Save, X, DollarSign, Package, Calendar, Eye, EyeOff } from "lucide-react";
 
-export default function ProductCard({ product, onUpdate, onDelete }) {
+export default function ProductCard({ product, onUpdate, onDelete, getCategoryColor: externalGetCategoryColor }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [isDeleting, setIsDeleting] = useState(false);
@@ -31,14 +34,11 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
   };
 
   const formatPrice = (value) => {
-    // Remove non-numeric characters except decimal point
     const cleaned = value.replace(/[^0-9.]/g, '');
-    // Ensure only one decimal point
     const parts = cleaned.split('.');
     if (parts.length > 2) {
       return parts[0] + '.' + parts.slice(1).join('');
     }
-    // Limit to 2 decimal places
     if (parts[1] && parts[1].length > 2) {
       return parts[0] + '.' + parts[1].substring(0, 2);
     }
@@ -133,6 +133,12 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
   };
 
   const getCategoryColor = (category) => {
+    // Use external function if provided, otherwise fall back to default
+    if (externalGetCategoryColor) {
+      return externalGetCategoryColor(category);
+    }
+    
+    // Default color mapping
     const colors = {
       Electronics: 'bg-blue-100 text-blue-700 border-blue-200',
       Books: 'bg-green-100 text-green-700 border-green-200',

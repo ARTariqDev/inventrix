@@ -1,3 +1,6 @@
+// I create the login page with animated form and authentication handling
+// This page allows users to sign in with email and password
+// I use motion animations and handle API calls for user authentication
 "use client";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -32,7 +35,6 @@ export default function LoginPage() {
     const data = await response.json();
 
     if (response.ok) {
-      // Login successful
       localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/stats');
     } else {

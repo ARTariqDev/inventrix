@@ -4,16 +4,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/* -------------------- Counter Schema -------------------- */
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
-  sequence_value: { type: Number, default: 0 } // start from 0, will increment to 1 for first item
+  sequence_value: { type: Number, default: 0 }
 });
 
 const Counter =
   mongoose.models.Counter || mongoose.model("Counter", CounterSchema);
 
-/* -------------------- User Schema -------------------- */
 const UserSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true, maxlength: 100 },
@@ -30,7 +28,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
-      select: false, // don't return password by default
+      select: false,
     },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     isActive: { type: Boolean, default: true },
@@ -56,7 +54,6 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-/* -------------------- Product Schema -------------------- */
 const ProductSchema = new mongoose.Schema(
   {
     sku: { type: String, unique: true, uppercase: true },
@@ -96,24 +93,19 @@ ProductSchema.index({ name: 1 });
 ProductSchema.index({ isActive: 1 });
 ProductSchema.index({ userId: 1 });
 
-/* ✅ Pre-save hook to auto-generate user-specific SKU */
 ProductSchema.pre("save", async function (next) {
   if (this.isNew) {
     try {
-      // Use user-specific counter ID
       const counterKey = `productId_${this.userId}`;
       
-      // Auto-increment counter per user
       const counter = await Counter.findByIdAndUpdate(
         { _id: counterKey },
         { $inc: { sequence_value: 1 } },
         { new: true, upsert: true }
       );
 
-      // Generate SKU in format PROD00001
       this.sku = `PROD${String(counter.sequence_value).padStart(5, '0')}`;
 
-      // Auto-populate userName if missing
       if (this.userId && !this.userName) {
         const User = mongoose.models.User || mongoose.model("User", UserSchema);
         const user = await User.findById(this.userId).select("fullName");
@@ -129,7 +121,6 @@ ProductSchema.pre("save", async function (next) {
   }
 });
 
-/* -------------------- Order Schema -------------------- */
 const OrderSchema = new mongoose.Schema(
   {
     orderId: { type: String, unique: true, uppercase: true },
@@ -200,31 +191,25 @@ OrderSchema.index({ orderStatus: 1 });
 OrderSchema.index({ orderDate: 1 });
 OrderSchema.index({ isActive: 1 });
 
-/* ✅ Pre-save hook to auto-generate user-specific Order ID */
 OrderSchema.pre("save", async function (next) {
   if (this.isNew) {
     try {
-      // Use user-specific counter ID
       const counterKey = `orderId_${this.userId}`;
       
-      // Auto-increment counter per user
       const counter = await Counter.findByIdAndUpdate(
         { _id: counterKey },
         { $inc: { sequence_value: 1 } },
         { new: true, upsert: true }
       );
 
-      // Generate Order ID in format ORD00001
       this.orderId = `ORD${String(counter.sequence_value).padStart(5, '0')}`;
 
-      // Auto-populate userName if missing
       if (this.userId && !this.userName) {
         const User = mongoose.models.User || mongoose.model("User", UserSchema);
         const user = await User.findById(this.userId).select("fullName");
         if (user) this.userName = user.fullName;
       }
 
-      // Set order time if not provided
       if (!this.orderTime) {
         const now = new Date();
         this.orderTime = now.toLocaleTimeString('en-US', { 
@@ -235,7 +220,6 @@ OrderSchema.pre("save", async function (next) {
         });
       }
 
-      // Calculate item totals and order total
       let calculatedTotal = 0;
       for (let item of this.orderItems) {
         item.itemTotal = item.productPrice * item.quantity;
@@ -248,7 +232,6 @@ OrderSchema.pre("save", async function (next) {
       next(error);
     }
   } else {
-    // If updating an existing order, recalculate totals if items changed
     if (this.isModified('orderItems')) {
       let calculatedTotal = 0;
       for (let item of this.orderItems) {
@@ -261,12 +244,10 @@ OrderSchema.pre("save", async function (next) {
   }
 });
 
-/* -------------------- Models -------------------- */
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
 const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
 
-/* -------------------- DB Connection -------------------- */
 export async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
   try {

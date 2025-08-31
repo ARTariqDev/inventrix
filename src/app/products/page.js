@@ -13,19 +13,15 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [availableCategories, setAvailableCategories] = useState([]);
   
-  // Filter states
   const [filters, setFilters] = useState({
-    // Text filters
-    name: { value: "", operator: "include" }, // include/exclude
+    name: { value: "", operator: "include" },
     category: { value: "", operator: "include" },
     sku: { value: "", operator: "include" },
     
-    // Numeric filters
-    price: { value: "", operator: "equal" }, // equal/not-equal/greater/less
+    price: { value: "", operator: "equal" },
     stock: { value: "", operator: "equal" },
     
-    // Status filters
-    isActive: { value: "all", operator: "equal" } // all/true/false
+    isActive: { value: "all", operator: "equal" }
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -36,6 +32,23 @@ export default function ProductsPage() {
     price: "",
     stock: ""
   });
+  const [categoryColors, setCategoryColors] = useState({});
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  
+  const colorOptions = [
+    { name: 'Blue', value: '#3B82F6', classes: 'bg-blue-100 text-blue-700 border-blue-200' },
+    { name: 'Purple', value: '#8B5CF6', classes: 'bg-purple-100 text-purple-700 border-purple-200' },
+    { name: 'Green', value: '#10B981', classes: 'bg-green-100 text-green-700 border-green-200' },
+    { name: 'Red', value: '#EF4444', classes: 'bg-red-100 text-red-700 border-red-200' },
+    { name: 'Yellow', value: '#F59E0B', classes: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    { name: 'Pink', value: '#EC4899', classes: 'bg-pink-100 text-pink-700 border-pink-200' },
+    { name: 'Indigo', value: '#6366F1', classes: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    { name: 'Teal', value: '#14B8A6', classes: 'bg-teal-100 text-teal-700 border-teal-200' },
+    { name: 'Orange', value: '#F97316', classes: 'bg-orange-100 text-orange-700 border-orange-200' },
+    { name: 'Cyan', value: '#06B6D4', classes: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+    { name: 'Lime', value: '#84CC16', classes: 'bg-lime-100 text-lime-700 border-lime-200' },
+    { name: 'Rose', value: '#F43F5E', classes: 'bg-rose-100 text-rose-700 border-rose-200' }
+  ];
 
 
   const fetchProducts = async () => {
@@ -59,7 +72,39 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
+    loadCategoryColors();
   }, []);
+
+  // Load category colors from localStorage
+  const loadCategoryColors = () => {
+    const savedColors = localStorage.getItem('inventrix-category-colors');
+    if (savedColors) {
+      setCategoryColors(JSON.parse(savedColors));
+    }
+  };
+
+  // Save category colors to localStorage
+  const saveCategoryColors = (colors) => {
+    localStorage.setItem('inventrix-category-colors', JSON.stringify(colors));
+    setCategoryColors(colors);
+  };
+
+  // Get color for a category
+  const getCategoryColor = (category) => {
+    if (categoryColors[category]) {
+      const colorOption = colorOptions.find(c => c.value === categoryColors[category]);
+      if (colorOption) {
+        return colorOption.classes;
+      }
+    }
+    // Default color if not set
+    return 'bg-gray-100 text-gray-700 border-gray-200';
+  };
+
+  // Check if category is new (not in existing categories)
+  const isNewCategory = (category) => {
+    return category && !availableCategories.includes(category) && !categoryColors[category];
+  };
 
   // Apply filters and search
   useEffect(() => {
@@ -162,6 +207,12 @@ export default function ProductsPage() {
 
   const addProduct = async () => {
     try {
+      // If it's a new category and no color is assigned, require color selection
+      if (isNewCategory(newProductForm.category) && !categoryColors[newProductForm.category]) {
+        setShowColorPicker(true);
+        return;
+      }
+
       const productData = {
         name: newProductForm.name.trim(),
         description: newProductForm.description.trim(),
@@ -198,6 +249,18 @@ export default function ProductsPage() {
     } catch (error) {
       console.error("Error adding product:", error);
     }
+  };
+
+  // Handle color selection for new category
+  const handleColorSelection = (color) => {
+    const updatedColors = {
+      ...categoryColors,
+      [newProductForm.category]: color.value
+    };
+    saveCategoryColors(updatedColors);
+    setShowColorPicker(false);
+    // Now add the product
+    addProduct();
   };
 
   if (loading) {
@@ -376,6 +439,7 @@ export default function ProductsPage() {
                 product={product}
                 onUpdate={fetchProducts}
                 onDelete={fetchProducts}
+                getCategoryColor={getCategoryColor}
               />
             ))}
           </AnimatePresence>
@@ -485,28 +549,44 @@ export default function ProductsPage() {
                   </div>
 
 
+                  {/* Category */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Category *
                     </label>
-                    <input
-                      type="text"
-                      value={newProductForm.category}
-                      onChange={(e) => handleNewProductChange('category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Enter category"
-                      maxLength="50"
-                      list="categories"
-                      required
-                    />
-                    <datalist id="categories">
-                      {availableCategories.map(cat => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newProductForm.category}
+                        onChange={(e) => handleNewProductChange('category', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Enter category"
+                        maxLength="50"
+                        list="categories"
+                        required
+                      />
+                      <datalist id="categories">
+                        {availableCategories.map(cat => (
+                          <option key={cat} value={cat} />
+                        ))}
+                      </datalist>
+                      
+                      {/* Category Color Preview */}
+                      {newProductForm.category && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-sm text-gray-600">Preview:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(newProductForm.category)}`}>
+                            {newProductForm.category}
+                          </span>
+                          {isNewCategory(newProductForm.category) && (
+                            <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                              New category - color will be assigned
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -557,6 +637,95 @@ export default function ProductsPage() {
                     className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Add Product
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Color Picker Modal */}
+        <AnimatePresence>
+          {showColorPicker && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowColorPicker(false);
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Choose Color for &ldquo;{newProductForm.category}&rdquo;
+                  </h2>
+                  <button
+                    onClick={() => setShowColorPicker(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <p className="text-gray-600 mb-6">
+                  This is a new category. Please select a color to represent it throughout the app.
+                </p>
+
+                {/* Color Grid */}
+                <div className="grid grid-cols-4 gap-3 mb-6">
+                  {colorOptions.map((color) => (
+                    <motion.button
+                      key={color.value}
+                      onClick={() => handleColorSelection(color)}
+                      className="bg-gray-100 hover:scale-110 transition-transform rounded-xl h-16 w-full shadow-lg relative group border-2 border-gray-200 hover:border-gray-300"
+                      style={{ backgroundColor: color.value }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <div className="absolute inset-0 bg-white bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all"></div>
+                      <div className="absolute bottom-1 left-1 right-1 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 rounded px-1 py-0.5">
+                        {color.name}
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Preview */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-600 mb-2">Preview:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {colorOptions.slice(0, 3).map((color) => (
+                      <span
+                        key={color.value}
+                        className={`px-3 py-1 rounded-full text-sm font-medium border ${color.classes}`}
+                      >
+                        {newProductForm.category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowColorPicker(false)}
+                    className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleColorSelection(colorOptions[0])}
+                    className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+                  >
+                    Use Default (Blue)
                   </button>
                 </div>
               </motion.div>

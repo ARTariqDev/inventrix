@@ -13,14 +13,12 @@ export default function LandingPage() {
       transition={{ duration: 0.7 }}
       className="flex flex-col items-center justify-center min-h-screen px-6 text-center"
     >
-      {/* Logo and Title Inline */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.1 }}
         className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12"
       >
-        {/* Package Logo */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -31,7 +29,6 @@ export default function LandingPage() {
           </div>
         </motion.div>
 
-        {/* Title */}
         <motion.h1
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -44,7 +41,6 @@ export default function LandingPage() {
         </motion.h1>
       </motion.div>
 
-      {/* Subtitle */}
       <motion.h2
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -55,7 +51,6 @@ export default function LandingPage() {
         organized, simple, and scalable.
       </motion.h2>
 
-      {/* Buttons */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

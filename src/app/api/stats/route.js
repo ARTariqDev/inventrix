@@ -7,7 +7,6 @@ export async function GET(request) {
   try {
     await connectDB();
 
-    // Get userId from cookie
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     console.log("🔍 Stats API - userId from cookie:", userId);
@@ -18,16 +17,14 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get("period") || "30"; // days
+    const period = searchParams.get("period") || "30";
     const category = searchParams.get("category") || "all";
     const status = searchParams.get("status") || "all";
 
-    // Calculate date range
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(period));
 
-    // Base filters
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const orderFilter = { 
       userId: userObjectId, 

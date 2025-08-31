@@ -12,11 +12,10 @@ export default function OrdersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Filter states
   const [filters, setFilters] = useState({
-    orderTotal: { value: "", operator: "equal" }, // equal/not-equal/greater/less
+    orderTotal: { value: "", operator: "equal" },
     orderStatus: { value: "all", operator: "equal" },
-    orderDate: { value: "", operator: "equal" }, // equal/after/before
+    orderDate: { value: "", operator: "equal" },
     receivedBy: { value: "", operator: "include" }
   });
 

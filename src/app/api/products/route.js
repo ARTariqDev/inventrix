@@ -6,7 +6,6 @@ export async function GET(request) {
   try {
     await connectDB();
 
-    // ✅ Require auth via cookie
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) {
@@ -18,13 +17,12 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit")) || 100;
     const skip = (page - 1) * limit;
 
-    let filter = { userId, isActive: true }; // ✅ user can only see their own active products by default
+    let filter = { userId, isActive: true };
 
-    // ✅ Filter by active/inactive
     const isActive = searchParams.get("isActive");
     if (isActive !== null && isActive !== undefined) {
       if (isActive === "all") {
-        delete filter.isActive; // Show both active and inactive
+        delete filter.isActive;
       } else {
         filter.isActive = isActive === "true";
       }

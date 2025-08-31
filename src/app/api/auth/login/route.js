@@ -36,7 +36,6 @@ export async function POST(request) {
       );
     }
 
-    // Build response object (without password)
     const userResponse = {
       id: user._id.toString(),
       fullName: user.fullName,
@@ -47,14 +46,13 @@ export async function POST(request) {
       updatedAt: user.updatedAt,
     };
 
-    // ✅ Set secure cookie with userId
     const cookieStore = await cookies();
     cookieStore.set("userId", user._id.toString(), {
-      httpOnly: true, // can't be accessed via JS on client
-      secure: process.env.NODE_ENV === "production", // only https in prod
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return NextResponse.json(

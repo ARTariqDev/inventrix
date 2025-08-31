@@ -1,3 +1,6 @@
+// I create the main layout wrapper that includes sidebar navigation and responsive design
+// This layout manages mobile/desktop view states and sidebar expansion
+// I handle responsive breakpoints and provide smooth transitions between states
 "use client";
 import { useState, useEffect } from "react";
 import { Menu, Package } from "lucide-react";
@@ -17,10 +20,9 @@ export default function Layout({ children }) {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Calculate the margin left based on sidebar state and screen size
   const getMainContentMargin = () => {
-    if (isMobile) return '0px'; // No margin on mobile
-    return sidebarExpanded ? '250px' : '70px'; // Adjust based on sidebar width
+    if (isMobile) return '0px';
+    return sidebarExpanded ? '250px' : '70px';
   };
 
   const toggleMobileSidebar = () => {

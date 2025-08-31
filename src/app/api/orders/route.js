@@ -2,7 +2,6 @@ import { connectDB, Order, Product, User } from "@/models/models";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-// GET - Fetch all orders for the current user
 export async function GET(request) {
   try {
     await connectDB();

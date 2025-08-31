@@ -4,11 +4,11 @@ import { useRef, useState } from "react";
 
 const Button = ({
   text,
-  glowColor = "#d2cbcbff", // glow around hover border
+  glowColor = "#d2cbcbff",
   onClick,
-  color = "#ffffff",       // button background
-  textColor = "#000000",   // button text color
-  rippleColor = "rgba(0,0,0,0.2)", // ripple color
+  color = "#ffffff",
+  textColor = "#000000",
+  rippleColor = "rgba(0,0,0,0.2)",
 }) => {
   const btnRef = useRef(null);
   const [hovered, setHovered] = useState(false);
@@ -54,7 +54,6 @@ const Button = ({
         background: color,
       }}
     >
-
       <span
         className="absolute inset-0 pointer-events-none rounded-md border z-10 transition-opacity duration-300 ease-out"
         style={{
@@ -68,7 +67,6 @@ const Button = ({
         }}
       />
 
-      {/* Ripple effect */}
       {ripples.map((ripple) => (
         <span
           key={ripple.id}
@@ -84,7 +82,6 @@ const Button = ({
           }}
         />
       ))}
-
 
       <span
         className="relative z-20 text-lg uppercase tracking-widest"
