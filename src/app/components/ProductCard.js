@@ -1,6 +1,3 @@
-// I create the ProductCard component for displaying and editing individual products
-// This component handles inline editing, deletion, and category color display
-// I provide real-time validation and smooth animations for user interactions
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";

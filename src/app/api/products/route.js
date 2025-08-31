@@ -196,6 +196,20 @@ export async function POST(request) {
       );
     }
 
+    if (error.code === 11000) {
+      // Check if it's a SKU duplication error for this user
+      if (error.message.includes('sku')) {
+        return NextResponse.json(
+          { error: "Product SKU already exists for this user" },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Duplicate key error" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to create product" },
       { status: 500 }

@@ -1,6 +1,3 @@
-// I create the main layout wrapper that includes sidebar navigation and responsive design
-// This layout manages mobile/desktop view states and sidebar expansion
-// I handle responsive breakpoints and provide smooth transitions between states
 "use client";
 import { useState, useEffect } from "react";
 import { Menu, Package } from "lucide-react";

@@ -1,6 +1,3 @@
-// I create the sidebar navigation component with responsive behavior and smooth animations
-// This sidebar adapts to mobile/desktop views and provides navigation to all app sections
-// I handle expansion states, user authentication, and smooth transitions between views
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
