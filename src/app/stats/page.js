@@ -34,6 +34,7 @@ import {
 import { Line, Doughnut } from 'react-chartjs-2';
 import Layout from "../components/Layout";
 import Button from "../components/Button";
+import { useRouter } from "next/navigation";
 
 // Register Chart.js components
 ChartJS.register(
@@ -50,6 +51,7 @@ ChartJS.register(
 );
 
 export default function StatsPage() {
+  const router = useRouter();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -86,15 +88,18 @@ export default function StatsPage() {
   };
 
   const handleViewMore = async (viewType) => {
+    // Special case: redirect to orders page for recent orders
+    if (viewType === 'recent-orders') {
+      router.push('/invoices');
+      return;
+    }
+
     setLoading(true);
     setCurrentView(viewType);
     
     try {
       let endpoint = '';
       switch (viewType) {
-        case 'recent-orders':
-          endpoint = '/api/orders';
-          break;
         case 'low-stock':
           endpoint = '/api/products?stock=10&stockOperator=less';
           break;
