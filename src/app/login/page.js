@@ -122,7 +122,7 @@ export default function LoginPage() {
         className="absolute bottom-4 left-1/2 transform -translate-x-1/2"
       >
         <p className="text-sm text-gray-500">
-          @Powered By Cybtrix Systems
+          @Powered By Cybitrix Systems
         </p>
       </motion.div>
     </motion.main>
