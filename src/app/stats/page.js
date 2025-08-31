@@ -107,6 +107,28 @@ export default function StatsPage() {
 
   const updateProductStock = async (productId, newStock) => {
     try {
+      // First, get the current product data
+      const getResponse = await fetch(`/api/products?id=${productId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!getResponse.ok) {
+        console.error("Failed to fetch product data:", await getResponse.text());
+        return false;
+      }
+
+      const productData = await getResponse.json();
+      const product = productData.products[0]; // Assuming the API returns products array
+
+      if (!product) {
+        console.error("Product not found");
+        return false;
+      }
+
+      // Now update with all required fields
       const response = await fetch(`/api/products`, {
         method: 'PUT',
         headers: {
@@ -114,7 +136,14 @@ export default function StatsPage() {
         },
         body: JSON.stringify({ 
           id: productId,
-          updates: { stock: newStock }
+          updates: { 
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            price: product.price,
+            stock: newStock,
+            isActive: product.isActive
+          }
         }),
       });
 
