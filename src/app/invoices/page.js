@@ -11,7 +11,9 @@ import {
   User,
   Eye,
   X,
-  Printer
+  Printer,
+  MapPin,
+  Phone
 } from "lucide-react";
 import Layout from "../components/Layout";
 import jsPDF from 'jspdf';
@@ -84,6 +86,7 @@ export default function InvoicesPage() {
       case 'confirmed': return 'bg-yellow-100 text-yellow-800';
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -351,7 +354,10 @@ export default function InvoicesPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900 mb-2">INVENTRIX</div>
+                        <div className="flex items-center justify-end gap-3 mb-3">
+                          <Package className="w-8 h-8 text-purple-600" />
+                          <div className="text-2xl font-bold text-gray-900">INVENTRIX</div>
+                        </div>
                         <div className="text-gray-600">
                           <p>Inventory Management System</p>
                           <p>Digital Invoice</p>
@@ -363,9 +369,27 @@ export default function InvoicesPage() {
                     <div className="grid grid-cols-2 gap-8 mb-8">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-3">Bill To:</h3>
-                        <div className="text-gray-600">
-                          <p className="font-medium text-gray-900">{selectedOrder.receivedBy}</p>
-                          <p>Order Status: <span className="capitalize">{selectedOrder.orderStatus}</span></p>
+                        <div className="text-gray-600 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium text-gray-900">{selectedOrder.receivedBy}</span>
+                          </div>
+                          {selectedOrder.address && (
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                              <span>{selectedOrder.address}</span>
+                            </div>
+                          )}
+                          {selectedOrder.phoneNumber && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-gray-400" />
+                              <span>{selectedOrder.phoneNumber}</span>
+                            </div>
+                          )}
+                          <div className="mt-3">
+                            <span className="text-sm">Order Status: </span>
+                            <span className="capitalize font-medium text-gray-900">{selectedOrder.orderStatus}</span>
+                          </div>
                         </div>
                       </div>
                       <div>

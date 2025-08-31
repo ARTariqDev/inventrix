@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   TrendingUp, 
@@ -11,11 +11,43 @@ import {
   Calendar,
   Filter,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  Eye
 } from "lucide-react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  Filler,
+} from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
 import Layout from "../components/Layout";
+import Button from "../components/Button";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  Filler
+);
 
 export default function StatsPage() {
   const [stats, setStats] = useState(null);
@@ -26,8 +58,10 @@ export default function StatsPage() {
     status: "all"
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'recent-orders', 'low-stock', 'top-products'
+  const [expandedData, setExpandedData] = useState(null);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams(filters);
@@ -41,14 +75,53 @@ export default function StatsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchStats();
-  }, [filters]);
+  }, [fetchStats]);
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleViewMore = async (viewType) => {
+    setLoading(true);
+    setCurrentView(viewType);
+    
+    try {
+      let endpoint = '';
+      switch (viewType) {
+        case 'recent-orders':
+          endpoint = '/api/orders';
+          break;
+        case 'low-stock':
+          endpoint = '/api/products?stock=10&stockOperator=less';
+          break;
+        case 'top-products':
+          endpoint = '/api/stats?detail=top-products';
+          break;
+        default:
+          setCurrentView('dashboard');
+          setLoading(false);
+          return;
+      }
+      
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const data = await response.json();
+        setExpandedData(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch expanded data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const returnToDashboard = () => {
+    setCurrentView('dashboard');
+    setExpandedData(null);
   };
 
   const formatCurrency = (amount) => {
@@ -70,8 +143,212 @@ export default function StatsPage() {
       case 'confirmed': return 'bg-yellow-100 text-yellow-800';
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Render expanded views
+  const renderExpandedView = () => {
+    if (currentView === 'dashboard') return null;
+
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Back Navigation */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-4"
+        >
+          <div className="flex items-center gap-2">
+            <ChevronLeft size={20} className="text-gray-600" />
+            <Button
+              text="Back to Dashboard"
+              onClick={returnToDashboard}
+              color="#ffffff"
+              textColor="#374151"
+              glowColor="#8b5cf6"
+              rippleColor="rgba(139, 92, 246, 0.2)"
+            />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {currentView === 'recent-orders' && 'All Recent Orders'}
+              {currentView === 'low-stock' && 'Low Stock Products'}
+              {currentView === 'top-products' && 'Top Performing Products'}
+            </h1>
+            <p className="text-gray-600">
+              {currentView === 'recent-orders' && 'Complete list of all orders'}
+              {currentView === 'low-stock' && 'Products that need restocking'}
+              {currentView === 'top-products' && 'Best selling products by revenue'}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Expanded Content */}
+        {currentView === 'recent-orders' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">All Orders</h2>
+              <p className="text-sm text-gray-600">Total: {expandedData?.orders?.length || 0} orders</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {expandedData?.orders && expandedData.orders.length > 0 ? (
+                    expandedData.orders.map((order) => (
+                      <tr key={order._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {order.orderId}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {order.receivedBy}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(order.orderDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
+                            {order.orderStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {formatCurrency(order.orderTotal)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {order.orderItems?.length || 0} items
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <ShoppingCart className="w-12 h-12 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Orders Found</h3>
+                          <p className="text-gray-600">No orders match the current filters.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {currentView === 'low-stock' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Low Stock Products</h2>
+              <p className="text-sm text-gray-600">Products with 10 or fewer items in stock</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+              {expandedData?.products && expandedData.products.length > 0 ? (
+                expandedData.products.map((product) => (
+                  <div key={product._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+                        <p className="text-sm text-gray-600">{product.category}</p>
+                        <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
+                      </div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        product.stock <= 5 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {product.stock} left
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
+                      <div className="w-full max-w-20 bg-gray-200 rounded-full h-2 ml-3">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            product.stock <= 5 ? 'bg-red-500' : 'bg-yellow-500'
+                          }`}
+                          style={{ width: `${Math.min((product.stock / 20) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <Package className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">All Products Well Stocked!</h3>
+                  <p className="text-gray-600">No products are currently running low on stock.</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {currentView === 'top-products' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg overflow-hidden"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Top Performing Products</h2>
+              <p className="text-sm text-gray-600">Products ranked by total revenue generated</p>
+            </div>
+            
+            <div className="space-y-4 p-6">
+              {stats?.topProducts?.map((product, index) => (
+                <div key={product._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${
+                      index === 0 ? 'bg-yellow-500' :
+                      index === 1 ? 'bg-gray-400' :
+                      index === 2 ? 'bg-orange-600' :
+                      'bg-purple-500'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{product.productName}</h3>
+                      <p className="text-sm text-gray-600">{product.totalQuantity} units sold</p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(product.totalRevenue)}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Avg: {formatCurrency(product.totalRevenue / product.totalQuantity)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -82,6 +359,11 @@ export default function StatsPage() {
         </div>
       </Layout>
     );
+  }
+
+  // Render expanded view if not on dashboard
+  if (currentView !== 'dashboard') {
+    return <Layout>{renderExpandedView()}</Layout>;
   }
 
   return (
@@ -170,6 +452,7 @@ export default function StatsPage() {
                     <option value="confirmed">Confirmed</option>
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>
@@ -252,24 +535,87 @@ export default function StatsPage() {
               </div>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-2">
-              {stats?.dailyRevenue?.slice(-14).map((day, index) => {
-                const maxRevenue = Math.max(...(stats?.dailyRevenue?.map(d => d.revenue) || [1]));
-                const height = (day.revenue / maxRevenue) * 100;
-                
-                return (
-                  <div key={day.date} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg mb-2 transition-all hover:opacity-80"
-                      style={{ height: `${height}%` }}
-                      title={`${formatDate(day.date)}: ${formatCurrency(day.revenue)}`}
-                    />
-                    <span className="text-xs text-gray-500 transform -rotate-45 origin-left">
-                      {formatDate(day.date)}
-                    </span>
+            <div className="h-64">
+              {stats?.dailyRevenue && stats.dailyRevenue.length > 0 ? (
+                <Line
+                  data={{
+                    labels: stats.dailyRevenue.slice(-14).map(day => formatDate(day.date)),
+                    datasets: [
+                      {
+                        label: 'Revenue',
+                        data: stats.dailyRevenue.slice(-14).map(day => day.revenue),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false,
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                          label: function(context) {
+                            return `Revenue: ${formatCurrency(context.parsed.y)}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        grid: {
+                          display: false,
+                        },
+                        ticks: {
+                          color: '#6b7280',
+                          font: {
+                            size: 12
+                          }
+                        }
+                      },
+                      y: {
+                        grid: {
+                          color: 'rgba(209, 213, 219, 0.3)',
+                        },
+                        ticks: {
+                          color: '#6b7280',
+                          font: {
+                            size: 12
+                          },
+                          callback: function(value) {
+                            return formatCurrency(value);
+                          }
+                        }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500">No revenue data available</p>
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -289,35 +635,82 @@ export default function StatsPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {stats?.statusDistribution?.map((status, index) => {
-                const total = stats.statusDistribution.reduce((sum, s) => sum + s.count, 0);
-                const percentage = total > 0 ? (status.count / total) * 100 : 0;
-                
-                return (
-                  <div key={status._id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className={`w-3 h-3 rounded-full`}
-                        style={{ 
-                          backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'][index % 3] 
-                        }}
-                      />
-                      <span className="capitalize font-medium text-gray-700">
-                        {status._id}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">
-                        {status.count}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {percentage.toFixed(1)}%
-                      </div>
-                    </div>
+            <div className="h-64">
+              {stats?.statusDistribution && stats.statusDistribution.length > 0 ? (
+                <Doughnut
+                  data={{
+                    labels: stats.statusDistribution.map(status => 
+                      status._id.charAt(0).toUpperCase() + status._id.slice(1)
+                    ),
+                    datasets: [
+                      {
+                        data: stats.statusDistribution.map(status => status.count),
+                        backgroundColor: stats.statusDistribution.map(status => {
+                          switch (status._id) {
+                            case 'confirmed': return '#10b981'; // Green
+                            case 'shipped': return '#3b82f6';   // Blue
+                            case 'delivered': return '#8b5cf6'; // Purple
+                            case 'cancelled': return '#ef4444'; // Red
+                            default: return '#6b7280';         // Gray
+                          }
+                        }),
+                        borderColor: stats.statusDistribution.map(status => {
+                          switch (status._id) {
+                            case 'confirmed': return '#10b981'; // Green
+                            case 'shipped': return '#3b82f6';   // Blue
+                            case 'delivered': return '#8b5cf6'; // Purple
+                            case 'cancelled': return '#ef4444'; // Red
+                            default: return '#6b7280';         // Gray
+                          }
+                        }),
+                        borderWidth: 2,
+                        hoverOffset: 8,
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'right',
+                        labels: {
+                          padding: 20,
+                          usePointStyle: true,
+                          pointStyle: 'circle',
+                          font: {
+                            size: 12
+                          },
+                          color: '#374151'
+                        }
+                      },
+                      tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#6b7280',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                          label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} orders (${percentage}%)`;
+                          }
+                        }
+                      }
+                    },
+                    cutout: '60%'
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <PieChart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500">No order data available</p>
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
@@ -330,18 +723,27 @@ export default function StatsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Top Products</h3>
+                  <p className="text-sm text-gray-600">Best selling items</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Top Products</h3>
-                <p className="text-sm text-gray-600">Best selling items</p>
-              </div>
+              <button
+                onClick={() => handleViewMore('top-products')}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+              >
+                <Eye size={14} />
+                View More
+              </button>
             </div>
 
             <div className="space-y-3">
-              {stats?.topProducts?.slice(0, 5).map((product, index) => (
+              {stats?.topProducts?.slice(0, 4).map((product, index) => (
                 <div key={product._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-600">
@@ -373,18 +775,27 @@ export default function StatsPage() {
             transition={{ delay: 0.1 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
+                  <p className="text-sm text-gray-600">Latest transactions</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
-                <p className="text-sm text-gray-600">Latest transactions</p>
-              </div>
+              <button
+                onClick={() => handleViewMore('recent-orders')}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+              >
+                <Eye size={14} />
+                View More
+              </button>
             </div>
 
             <div className="space-y-3">
-              {stats?.recentOrders?.map((order) => (
+              {stats?.recentOrders?.slice(0, 4).map((order) => (
                 <div key={order._id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
                   <div>
                     <div className="font-medium text-gray-900 text-sm">
@@ -414,19 +825,28 @@ export default function StatsPage() {
             transition={{ delay: 0.2 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Low Stock Alert</h3>
+                  <p className="text-sm text-gray-600">Items running low</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Low Stock Alert</h3>
-                <p className="text-sm text-gray-600">Items running low</p>
-              </div>
+              <button
+                onClick={() => handleViewMore('low-stock')}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+              >
+                <Eye size={14} />
+                View More
+              </button>
             </div>
 
             <div className="space-y-3">
               {stats?.lowStockProducts?.length > 0 ? (
-                stats.lowStockProducts.map((product) => (
+                stats.lowStockProducts.slice(0, 4).map((product) => (
                   <div key={product._id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
                     <div>
                       <div className="font-medium text-gray-900 text-sm">

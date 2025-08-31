@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, DollarSign, User, Clock, Truck, CheckCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, DollarSign, User, Clock, Truck, CheckCircle, XCircle } from "lucide-react";
 import Layout from "../components/Layout";
 
 export default function OrdersPage() {
@@ -26,6 +25,8 @@ export default function OrdersPage() {
   const [orderForm, setOrderForm] = useState({
     orderItems: [{ productId: "", quantity: 1 }],
     receivedBy: "",
+    address: "",
+    phoneNumber: "",
     orderStatus: "confirmed"
   });
 
@@ -202,6 +203,8 @@ export default function OrdersPage() {
           quantity: item.quantity
         })),
         receivedBy: order.receivedBy,
+        address: order.address || "",
+        phoneNumber: order.phoneNumber || "",
         orderStatus: order.orderStatus
       });
     } else {
@@ -209,6 +212,8 @@ export default function OrdersPage() {
       setOrderForm({
         orderItems: [{ productId: "", quantity: 1 }],
         receivedBy: "",
+        address: "",
+        phoneNumber: "",
         orderStatus: "confirmed"
       });
     }
@@ -279,6 +284,7 @@ export default function OrdersPage() {
       case 'confirmed': return <Clock className="w-4 h-4" />;
       case 'shipped': return <Truck className="w-4 h-4" />;
       case 'delivered': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
       default: return <Package className="w-4 h-4" />;
     }
   };
@@ -288,6 +294,7 @@ export default function OrdersPage() {
       case 'confirmed': return 'bg-yellow-100 text-yellow-800';
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -409,6 +416,7 @@ export default function OrdersPage() {
                       <option value="confirmed">Confirmed</option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
 
@@ -461,10 +469,10 @@ export default function OrdersPage() {
             {filteredOrders.map((order) => (
               <motion.div
                 key={order._id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300"
               >
                 {/* Order Header */}
@@ -492,6 +500,24 @@ export default function OrdersPage() {
                       <strong>Received by:</strong> {order.receivedBy}
                     </span>
                   </div>
+                  
+                  {order.address && (
+                    <div className="flex items-start gap-2">
+                      <Package className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <span className="text-sm text-gray-600">
+                        <strong>Address:</strong> {order.address}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {order.phoneNumber && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        <strong>Phone:</strong> {order.phoneNumber}
+                      </span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-gray-400" />
@@ -593,9 +619,10 @@ export default function OrdersPage() {
               }}
             >
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -628,6 +655,38 @@ export default function OrdersPage() {
                     />
                   </div>
 
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Address *
+                    </label>
+                    <textarea
+                      value={orderForm.address}
+                      onChange={(e) => handleOrderFormChange('address', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter delivery address"
+                      maxLength="500"
+                      rows="3"
+                      required
+                    />
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={orderForm.phoneNumber}
+                      onChange={(e) => handleOrderFormChange('phoneNumber', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter phone number"
+                      maxLength="20"
+                      required
+                    />
+                  </div>
+
                   {/* Order Status */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -641,6 +700,7 @@ export default function OrdersPage() {
                       <option value="confirmed">Confirmed</option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
 
@@ -758,7 +818,7 @@ export default function OrdersPage() {
                   </button>
                   <button
                     onClick={saveOrder}
-                    disabled={!orderForm.receivedBy || orderForm.orderItems.filter(item => item.productId && item.quantity > 0).length === 0}
+                    disabled={!orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity > 0).length === 0}
                     className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {editingOrder ? "Update Order" : "Create Order"}

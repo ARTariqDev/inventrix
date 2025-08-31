@@ -1,8 +1,21 @@
-"use client";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
+export const metadata = {
+  title: "Inventrix",
+  description: "Your all-in-one inventory management system to keep everything organized, simple, and scalable.",
+  keywords: ["inventory", "management", "system", "organization", "business"],
+  icons: {
+    icon: [
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +32,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        {children}
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 import { connectDB, Order, Product } from "@/models/models";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
@@ -9,7 +10,10 @@ export async function GET(request) {
     // Get userId from cookie
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
+    console.log("🔍 Stats API - userId from cookie:", userId);
+    
     if (!userId) {
+      console.log("❌ Stats API - No userId found in cookie");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -24,12 +28,16 @@ export async function GET(request) {
     startDate.setDate(startDate.getDate() - parseInt(period));
 
     // Base filters
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     const orderFilter = { 
-      userId, 
+      userId: userObjectId, 
       isActive: true,
       orderDate: { $gte: startDate, $lte: endDate }
     };
-    const productFilter = { userId, isActive: true };
+    const productFilter = { userId: userObjectId, isActive: true };
+    
+    console.log("🔍 Stats API - orderFilter:", JSON.stringify(orderFilter, null, 2));
+    console.log("🔍 Stats API - Date range:", startDate.toISOString(), "to", endDate.toISOString());
 
     // Apply additional filters
     if (status !== "all") {
@@ -148,7 +156,7 @@ export async function GET(request) {
       Order.aggregate([
         {
           $match: {
-            userId,
+            userId: userObjectId,
             isActive: true,
             orderDate: {
               $gte: new Date(new Date().setMonth(new Date().getMonth() - 11))
@@ -168,6 +176,14 @@ export async function GET(request) {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
       ])
     ]);
+
+    console.log("🔍 Stats API Results:");
+    console.log("- Total Orders:", totalOrders);
+    console.log("- Total Revenue result:", totalRevenue);
+    console.log("- Total Revenue value:", totalRevenue[0]?.total || 0);
+    console.log("- Daily Revenue entries:", dailyRevenue.length);
+    console.log("- Status Distribution entries:", statusDistribution.length);
+    console.log("- Status Distribution:", statusDistribution);
 
     // Format daily revenue data
     const dailyRevenueFormatted = dailyRevenue.map(item => ({

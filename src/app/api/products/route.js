@@ -18,12 +18,16 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit")) || 100;
     const skip = (page - 1) * limit;
 
-    let filter = { userId }; // ✅ user can only see their own products
+    let filter = { userId, isActive: true }; // ✅ user can only see their own active products by default
 
     // ✅ Filter by active/inactive
     const isActive = searchParams.get("isActive");
-    if (isActive !== null && isActive !== "all") {
-      filter.isActive = isActive === "true";
+    if (isActive !== null && isActive !== undefined) {
+      if (isActive === "all") {
+        delete filter.isActive; // Show both active and inactive
+      } else {
+        filter.isActive = isActive === "true";
+      }
     }
 
     // ✅ Filter by name
@@ -312,18 +316,21 @@ export async function DELETE(request) {
       );
     }
 
-    // Find and delete product (verify ownership)
-    const deletedProduct = await Product.findOneAndDelete({ 
-      _id: id, 
-      userId 
-    });
-
-    if (!deletedProduct) {
+    // Find product and verify ownership
+    const existingProduct = await Product.findOne({ _id: id, userId });
+    if (!existingProduct) {
       return NextResponse.json(
         { error: "Product not found or unauthorized" },
         { status: 404 }
       );
     }
+
+    // Soft delete by setting isActive to false
+    const deletedProduct = await Product.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
 
     return NextResponse.json({
       success: true,

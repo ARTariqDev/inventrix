@@ -7,7 +7,8 @@ export async function GET(request) {
   try {
     await connectDB();
     
-    const userId = cookies().get("userId")?.value;
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json(
         { error: "User not authenticated" },
@@ -40,8 +41,9 @@ export async function POST(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderItems, receivedBy, orderStatus = "confirmed" } = body;
-    const userId = cookies().get("userId")?.value;
+    const { orderItems, receivedBy, address, phoneNumber, orderStatus = "confirmed" } = body;
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json(
         { error: "User not authenticated" },
@@ -60,6 +62,18 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+    if (!address) {
+      return NextResponse.json(
+        { error: "Address is required" },
+        { status: 400 }
+      );
+    }
+    if (!phoneNumber) {
+      return NextResponse.json(
+        { error: "Phone number is required" },
+        { status: 400 }
+      );
+    }
 
     // Get user information for userName
     const user = await User.findById(userId).select('fullName');
@@ -75,12 +89,19 @@ export async function POST(request) {
     let calculatedTotal = 0;
     
     for (const item of orderItems) {
-      const product = await Product.findById(item.productId).select('name price stock');
+      const product = await Product.findById(item.productId).select('name price stock isActive');
       
       if (!product) {
         return NextResponse.json(
           { error: `Product with ID ${item.productId} not found` },
           { status: 404 }
+        );
+      }
+
+      if (!product.isActive) {
+        return NextResponse.json(
+          { error: `Product "${product.name}" is no longer available and cannot be added to orders` },
+          { status: 400 }
         );
       }
 
@@ -118,6 +139,8 @@ export async function POST(request) {
       orderTotal: calculatedTotal,
       orderTime: orderTime,
       receivedBy,
+      address,
+      phoneNumber,
       orderStatus,
       userId,
       userName: user.fullName
@@ -157,8 +180,9 @@ export async function PUT(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderId, orderItems, receivedBy, orderStatus } = body;
-    const userId = cookies().get("userId")?.value;
+    const { orderId, orderItems, receivedBy, address, phoneNumber, orderStatus } = body;
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json(
         { error: "User not authenticated" },
@@ -196,12 +220,19 @@ export async function PUT(request) {
       let calculatedTotal = 0;
       
       for (const item of orderItems) {
-        const product = await Product.findById(item.productId).select('name price stock');
+        const product = await Product.findById(item.productId).select('name price stock isActive');
         
         if (!product) {
           return NextResponse.json(
             { error: `Product with ID ${item.productId} not found` },
             { status: 404 }
+          );
+        }
+
+        if (!product.isActive) {
+          return NextResponse.json(
+            { error: `Product "${product.name}" is no longer available and cannot be added to orders` },
+            { status: 400 }
           );
         }
 
@@ -238,6 +269,8 @@ export async function PUT(request) {
 
     // Update other fields
     if (receivedBy) existingOrder.receivedBy = receivedBy;
+    if (address) existingOrder.address = address;
+    if (phoneNumber) existingOrder.phoneNumber = phoneNumber;
     if (orderStatus) existingOrder.orderStatus = orderStatus;
 
     await existingOrder.save();
@@ -265,7 +298,8 @@ export async function DELETE(request) {
     
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
-    const userId = cookies().get("userId")?.value;
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
     if (!userId) {
       return NextResponse.json(
         { error: "User not authenticated" },

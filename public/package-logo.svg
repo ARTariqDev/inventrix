@@ -1,0 +1,51 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main box -->
+  <path d="M20 35L60 15L100 35V85L60 105L20 85V35Z" fill="url(#gradient1)" stroke="url(#gradient2)" stroke-width="2"/>
+  
+  <!-- Top flap -->
+  <path d="M20 35L60 15L60 45L20 65V35Z" fill="url(#gradient3)" stroke="url(#gradient2)" stroke-width="1"/>
+  <path d="M100 35L60 15L60 45L100 65V35Z" fill="url(#gradient4)" stroke="url(#gradient2)" stroke-width="1"/>
+  
+  <!-- Center line -->
+  <line x1="60" y1="15" x2="60" y2="105" stroke="url(#gradient2)" stroke-width="2"/>
+  
+  <!-- Package tape -->
+  <rect x="55" y="25" width="10" height="70" fill="url(#tapeGradient)" opacity="0.8"/>
+  <rect x="25" y="55" width="70" height="8" fill="url(#tapeGradient)" opacity="0.8"/>
+  
+  <!-- Highlight -->
+  <path d="M25 40L55 25L55 50L25 65V40Z" fill="url(#highlight)" opacity="0.3"/>
+  
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c084fc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f472b6;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e879f9;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="tapeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </linearGradient>
+  </defs>
+</svg>

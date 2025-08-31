@@ -168,9 +168,23 @@ const OrderSchema = new mongoose.Schema(
     orderDate: { type: Date, default: Date.now },
     orderTime: { type: String, required: true },
     receivedBy: { type: String, required: true, trim: true, maxlength: 100 },
+    address: { 
+      type: String, 
+      required: true, 
+      trim: true, 
+      maxlength: 500,
+      default: ""
+    },
+    phoneNumber: { 
+      type: String, 
+      required: true, 
+      trim: true, 
+      maxlength: 20,
+      default: ""
+    },
     orderStatus: { 
       type: String, 
-      enum: ["confirmed", "shipped", "delivered"], 
+      enum: ["confirmed", "shipped", "delivered", "cancelled"], 
       default: "confirmed" 
     },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

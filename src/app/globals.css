@@ -5,7 +5,7 @@
 body {
   background: rgb(234, 233, 233);
   background-image: radial-gradient(#a855f7 1px, transparent 0);
-  background-size: 20px 20px; /* tweak spacing */
+  background-size: 20px 20px;
 }
 
 @keyframes gradient-x {
@@ -20,4 +20,42 @@ body {
 .animate-gradient-x {
   background-size: 200% 200%;
   animation: gradient-x 6s ease infinite;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Prevent layout shifts during animations */
+.product-grid {
+  contain: layout style;
+}
+
+.product-card {
+  contain: layout style;
+  will-change: transform, opacity;
+}
+
+/* Ensure consistent sizing during animations */
+[data-framer-motion] {
+  min-height: inherit !important;
+  max-height: inherit !important;
 }

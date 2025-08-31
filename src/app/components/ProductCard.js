@@ -178,12 +178,13 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
   if (editingId === product._id) {
     return (
       <motion.div
-        className="bg-white rounded-2xl p-6 shadow-lg border-2 border-purple-200"
-        initial={{ scale: 0.98 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.2 }}
+        className="bg-white rounded-2xl p-6 shadow-lg border-2 border-purple-200 min-h-[400px] max-h-[500px] flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 overflow-y-auto">
           {/* Product Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -285,26 +286,26 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
               </span>
             </label>
           </div>
+        </div>
 
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              onClick={cancelEdit}
-              disabled={isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              <X size={18} />
-              Cancel
-            </button>
-            <button
-              onClick={saveEdit}
-              disabled={isUpdating || !editForm.name || !editForm.category}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save size={18} />
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex gap-3 pt-4 border-t border-gray-200 mt-4 flex-shrink-0">
+          <button
+            onClick={cancelEdit}
+            disabled={isUpdating}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <X size={18} />
+            Cancel
+          </button>
+          <button
+            onClick={saveEdit}
+            disabled={isUpdating || !editForm.name || !editForm.category}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save size={18} />
+            {isUpdating ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </motion.div>
     );
@@ -315,24 +316,28 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
 
   return (
     <motion.div
-      className={`bg-white rounded-2xl p-6 shadow-lg border transition-all duration-300 group hover:shadow-xl ${
+      className={`product-card bg-white rounded-2xl p-6 shadow-lg border transition-all duration-300 group hover:shadow-xl min-h-[400px] max-h-[400px] flex flex-col ${
         product.isActive ? 'border-gray-100 hover:border-purple-200' : 'border-red-200 bg-gray-50'
       }`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       whileHover={{ y: -2 }}
-      layout
     >
 
+      {/* Header Section */}
       <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
+        <div className="flex-1 min-h-0">
           <div className="flex items-start justify-between mb-3">
-            <h3 className={`text-xl font-bold transition-colors ${
+            <h3 className={`text-xl font-bold transition-colors line-clamp-2 ${
               product.isActive 
                 ? 'text-gray-800 group-hover:text-purple-600' 
                 : 'text-gray-500'
             }`}>
               {product.name}
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               {!product.isActive && (
                 <div className="flex items-center gap-1 text-red-500">
                   <EyeOff size={14} />
@@ -351,14 +356,19 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
         </div>
       </div>
 
+      {/* Description Section - Fixed Height */}
+      <div className="mb-4 h-12 flex items-start">
+        {product.description && (
+          <p className="text-gray-600 text-sm line-clamp-2 overflow-hidden">
+            {product.description}
+          </p>
+        )}
+      </div>
 
-      {product.description && (
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-          {product.description}
-        </p>
-      )}
+      {/* Spacer to push bottom content down */}
+      <div className="flex-1"></div>
 
-
+      {/* Price and Stock Section */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-gray-700">

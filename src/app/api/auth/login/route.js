@@ -48,12 +48,13 @@ export async function POST(request) {
     };
 
     // ✅ Set secure cookie with userId
-    cookies().set("userId", user._id.toString(), {
-      httpOnly: true, // can’t be accessed via JS on client
+    const cookieStore = await cookies();
+    cookieStore.set("userId", user._id.toString(), {
+      httpOnly: true, // can't be accessed via JS on client
       secure: process.env.NODE_ENV === "production", // only https in prod
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
     return NextResponse.json(
