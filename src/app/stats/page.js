@@ -85,26 +85,35 @@ export default function StatsPage() {
     fetchStats();
   }, [fetchStats]);
 
+  const [updatingStock, setUpdatingStock] = useState(new Set());
+
   const updateProductStock = async (productId, newStock) => {
     try {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/products`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ stock: newStock }),
+        body: JSON.stringify({ 
+          id: productId,
+          updates: { stock: newStock }
+        }),
       });
 
       if (response.ok) {
+        const result = await response.json();
+        
         // Update the expanded data to reflect the change
-        setExpandedData(prev => ({
-          ...prev,
-          products: prev.products.map(product => 
-            product._id === productId 
-              ? { ...product, stock: newStock }
-              : product
-          )
-        }));
+        if (expandedData?.products) {
+          setExpandedData(prev => ({
+            ...prev,
+            products: prev.products.map(product => 
+              product._id === productId 
+                ? { ...product, stock: newStock }
+                : product
+            ).filter(product => product.stock <= 10) // Remove products that are no longer low stock
+          }));
+        }
         
         // Also update stats if the product is in lowStockProducts
         setStats(prev => ({
@@ -113,17 +122,40 @@ export default function StatsPage() {
             product._id === productId
               ? { ...product, stock: newStock }
               : product
-          )
+          ).filter(product => product.stock <= 10) // Remove products that are no longer low stock
         }));
+        
+        return true;
+      } else {
+        console.error("Failed to update product stock:", await response.text());
+        return false;
       }
     } catch (error) {
       console.error("Failed to update product stock:", error);
+      return false;
     }
   };
 
-  const handleStockChange = (productId, currentStock, increment) => {
+  const handleStockChange = async (productId, currentStock, increment) => {
     const newStock = increment ? currentStock + 1 : Math.max(0, currentStock - 1);
-    updateProductStock(productId, newStock);
+    
+    // Add to updating set
+    setUpdatingStock(prev => new Set([...prev, productId]));
+    
+    try {
+      const success = await updateProductStock(productId, newStock);
+      if (!success) {
+        // Optionally show an error message to user
+        console.error("Failed to update stock");
+      }
+    } finally {
+      // Remove from updating set
+      setUpdatingStock(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
   };
 
   const updateFilter = (key, value) => {
@@ -158,6 +190,10 @@ export default function StatsPage() {
       const response = await fetch(endpoint);
       if (response.ok) {
         const data = await response.json();
+        // Ensure we filter out any products that might not meet the low stock criteria
+        if (viewType === 'low-stock' && data.products) {
+          data.products = data.products.filter(product => product.stock <= 10);
+        }
         setExpandedData(data);
       }
     } catch (error) {
@@ -313,7 +349,13 @@ export default function StatsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
               {expandedData?.products && expandedData.products.length > 0 ? (
-                expandedData.products.map((product) => (
+                // Remove duplicates and ensure stock <= 10
+                expandedData.products
+                  .filter((product, index, self) => 
+                    product.stock <= 10 && 
+                    index === self.findIndex(p => p._id === product._id)
+                  )
+                  .map((product) => (
                   <div key={product._id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -344,10 +386,14 @@ export default function StatsPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleStockChange(product._id, product.stock, false)}
-                          disabled={product.stock <= 0}
+                          disabled={product.stock <= 0 || updatingStock.has(product._id)}
                           className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <Minus className="w-4 h-4" />
+                          {updatingStock.has(product._id) ? (
+                            <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Minus className="w-4 h-4" />
+                          )}
                         </button>
                         
                         <div className="flex items-center gap-2">
@@ -359,9 +405,14 @@ export default function StatsPage() {
                         
                         <button
                           onClick={() => handleStockChange(product._id, product.stock, true)}
-                          className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                          disabled={updatingStock.has(product._id)}
+                          className="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <Plus className="w-4 h-4" />
+                          {updatingStock.has(product._id) ? (
+                            <div className="w-3 h-3 border border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       
@@ -925,7 +976,14 @@ export default function StatsPage() {
 
             <div className="space-y-3">
               {stats?.lowStockProducts?.length > 0 ? (
-                stats.lowStockProducts.slice(0, 4).map((product) => (
+                // Remove duplicates based on _id and filter by stock <= 10
+                stats.lowStockProducts
+                  .filter((product, index, self) => 
+                    product.stock <= 10 && 
+                    index === self.findIndex(p => p._id === product._id)
+                  )
+                  .slice(0, 4)
+                  .map((product) => (
                   <div key={product._id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
                     <div className="flex-1">
                       <div className="font-medium text-gray-900 text-sm">
@@ -941,10 +999,14 @@ export default function StatsPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleStockChange(product._id, product.stock, false)}
-                          disabled={product.stock <= 0}
+                          disabled={product.stock <= 0 || updatingStock.has(product._id)}
                           className="w-6 h-6 flex items-center justify-center bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <Minus className="w-3 h-3" />
+                          {updatingStock.has(product._id) ? (
+                            <div className="w-2 h-2 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Minus className="w-3 h-3" />
+                          )}
                         </button>
                         
                         <span className="min-w-[2rem] text-center text-sm font-medium text-gray-900">
@@ -953,9 +1015,14 @@ export default function StatsPage() {
                         
                         <button
                           onClick={() => handleStockChange(product._id, product.stock, true)}
-                          className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
+                          disabled={updatingStock.has(product._id)}
+                          className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <Plus className="w-3 h-3" />
+                          {updatingStock.has(product._id) ? (
+                            <div className="w-2 h-2 border border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Plus className="w-3 h-3" />
+                          )}
                         </button>
                       </div>
                       
