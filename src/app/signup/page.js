@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "../components/Button";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,28 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/verify');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+            router.push('/stats');
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('Not authenticated, showing signup page');
+      }
+      setIsChecking(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -48,6 +70,14 @@ export default function SignupPage() {
       alert("Something went wrong");
     }
   };
+
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.main
