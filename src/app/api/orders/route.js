@@ -16,7 +16,7 @@ export async function GET(request) {
     }
 
     const orders = await Order.find({ userId, isActive: true })
-      .populate('orderItems.productId', 'name price')
+      .populate('orderItems.productId', 'name salePrice')
       .sort({ orderDate: -1 });
 
     return NextResponse.json({
@@ -88,7 +88,7 @@ export async function POST(request) {
     let calculatedTotal = 0;
     
     for (const item of orderItems) {
-      const product = await Product.findById(item.productId).select('name price stock isActive');
+      const product = await Product.findById(item.productId).select('name salePrice stock isActive');
       
       if (!product) {
         return NextResponse.json(
@@ -111,13 +111,13 @@ export async function POST(request) {
         );
       }
 
-      const itemTotal = product.price * item.quantity;
+      const itemTotal = product.salePrice * item.quantity;
       calculatedTotal += itemTotal;
 
       enrichedItems.push({
         productId: item.productId,
         productName: product.name,
-        productPrice: product.price,
+        productPrice: product.salePrice,
         quantity: item.quantity,
         itemTotal: itemTotal
       });
@@ -156,7 +156,7 @@ export async function POST(request) {
     }
 
     // Populate the created order for response
-    await order.populate('orderItems.productId', 'name price');
+    await order.populate('orderItems.productId', 'name salePrice');
 
     return NextResponse.json({
       success: true,
@@ -219,7 +219,7 @@ export async function PUT(request) {
       let calculatedTotal = 0;
       
       for (const item of orderItems) {
-        const product = await Product.findById(item.productId).select('name price stock isActive');
+        const product = await Product.findById(item.productId).select('name salePrice stock isActive');
         
         if (!product) {
           return NextResponse.json(
@@ -242,13 +242,13 @@ export async function PUT(request) {
           );
         }
 
-        const itemTotal = product.price * item.quantity;
+        const itemTotal = product.salePrice * item.quantity;
         calculatedTotal += itemTotal;
 
         enrichedItems.push({
           productId: item.productId,
           productName: product.name,
-          productPrice: product.price,
+          productPrice: product.salePrice,
           quantity: item.quantity,
           itemTotal: itemTotal
         });
@@ -273,7 +273,7 @@ export async function PUT(request) {
     if (orderStatus) existingOrder.orderStatus = orderStatus;
 
     await existingOrder.save();
-    await existingOrder.populate('orderItems.productId', 'name price');
+    await existingOrder.populate('orderItems.productId', 'name salePrice');
 
     return NextResponse.json({
       success: true,

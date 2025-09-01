@@ -39,7 +39,7 @@ export default function LandingPage() {
                        bg-gradient-to-r from-purple-600 via-pink-500 to-fuchsia-500 
                        bg-clip-text text-transparent animate-gradient-x"
           >
-            Inventrix
+            TwinStar
           </motion.h1>
         </motion.div>
 

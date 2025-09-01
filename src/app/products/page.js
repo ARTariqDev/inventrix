@@ -18,7 +18,8 @@ export default function ProductsPage() {
     category: { value: "", operator: "include" },
     sku: { value: "", operator: "include" },
     
-    price: { value: "", operator: "equal" },
+    purchasePrice: { value: "", operator: "equal" },
+    salePrice: { value: "", operator: "equal" },
     stock: { value: "", operator: "equal" },
     
     isActive: { value: "all", operator: "equal" }
@@ -29,7 +30,8 @@ export default function ProductsPage() {
     name: "",
     description: "",
     category: "",
-    price: "",
+    purchasePrice: "",
+    salePrice: "",
     stock: ""
   });
   const [categoryColors, setCategoryColors] = useState({});
@@ -145,7 +147,7 @@ export default function ProductsPage() {
         }
 
 
-        if (['price', 'stock'].includes(field)) {
+        if (['purchasePrice', 'salePrice', 'stock'].includes(field)) {
           const productNum = Number(productValue);
           const filterNum = Number(filter.value);
           
@@ -182,7 +184,8 @@ export default function ProductsPage() {
       name: { value: "", operator: "include" },
       category: { value: "", operator: "include" },
       sku: { value: "", operator: "include" },
-      price: { value: "", operator: "equal" },
+      purchasePrice: { value: "", operator: "equal" },
+      salePrice: { value: "", operator: "equal" },
       stock: { value: "", operator: "equal" },
       isActive: { value: "all", operator: "equal" }
     });
@@ -217,7 +220,8 @@ export default function ProductsPage() {
         name: newProductForm.name.trim(),
         description: newProductForm.description.trim(),
         category: newProductForm.category.trim(),
-        price: parseFloat(newProductForm.price) || 0,
+        purchasePrice: parseFloat(newProductForm.purchasePrice) || 0,
+        salePrice: parseFloat(newProductForm.salePrice) || 0,
         stock: parseInt(newProductForm.stock) || 0,
         isActive: true
       };
@@ -236,7 +240,8 @@ export default function ProductsPage() {
           name: "",
           description: "",
           category: "",
-          price: "",
+          purchasePrice: "",
+          salePrice: "",
           stock: ""
         });
         
@@ -380,10 +385,11 @@ export default function ProductsPage() {
                   ))}
 
 
-                  {['price', 'stock'].map(field => (
+                  {['purchasePrice', 'salePrice', 'stock'].map(field => (
                     <div key={field} className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700 capitalize">
-                        {field}
+                        {field === 'purchasePrice' ? 'Purchase Price' : 
+                         field === 'salePrice' ? 'Sale Price' : 'Stock'}
                       </label>
                       <div className="flex gap-2">
                         <select
@@ -402,7 +408,7 @@ export default function ProductsPage() {
                           onChange={(e) => updateFilter(field, 'value', e.target.value)}
                           placeholder="0"
                           min="0"
-                          step={field === 'price' ? '0.01' : '1'}
+                          step={field === 'stock' ? '1' : '0.01'}
                           className="flex-1 px-3 py-2 border border-gray-200 rounded-lg"
                         />
                       </div>
@@ -590,14 +596,14 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Price *
+                        Purchase Price *
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">Rs</span>
                         <input
                           type="text"
-                          value={newProductForm.price}
-                          onChange={(e) => handleNewProductChange('price', e.target.value)}
+                          value={newProductForm.purchasePrice}
+                          onChange={(e) => handleNewProductChange('purchasePrice', e.target.value)}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="0.00"
                           inputMode="decimal"
@@ -608,18 +614,36 @@ export default function ProductsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stock *
+                        Sale Price *
                       </label>
-                      <input
-                        type="text"
-                        value={newProductForm.stock}
-                        onChange={(e) => handleNewProductChange('stock', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="0"
-                        inputMode="numeric"
-                        required
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">Rs</span>
+                        <input
+                          type="text"
+                          value={newProductForm.salePrice}
+                          onChange={(e) => handleNewProductChange('salePrice', e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="0.00"
+                          inputMode="decimal"
+                          required
+                        />
+                      </div>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stock *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductForm.stock}
+                      onChange={(e) => handleNewProductChange('stock', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="0"
+                      inputMode="numeric"
+                      required
+                    />
                   </div>
                 </div>
 
@@ -633,7 +657,7 @@ export default function ProductsPage() {
                   </button>
                   <button
                     onClick={addProduct}
-                    disabled={!newProductForm.name || !newProductForm.category}
+                    disabled={!newProductForm.name || !newProductForm.category || !newProductForm.purchasePrice || !newProductForm.salePrice}
                     className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Add Product

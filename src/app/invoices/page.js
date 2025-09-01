@@ -409,7 +409,7 @@ export default function InvoicesPage() {
                       <div className="text-right">
                         <div className="flex items-center justify-end gap-3 mb-3">
                           <Package className="w-8 h-8 text-purple-600" />
-                          <div className="text-2xl font-bold text-gray-900">INVENTRIX</div>
+                          <div className="text-2xl font-bold text-gray-900">Twin Star</div>
                         </div>
                         <div className="text-gray-600">
                           <p>Inventory Management System</p>
@@ -505,7 +505,7 @@ export default function InvoicesPage() {
 
                     <div className="border-t border-gray-200 pt-6 text-center text-gray-500">
                       <p>Thank you for your business!</p>
-                      <p className="text-sm mt-2">This is a digitally generated invoice from Inventrix</p>
+                      <p className="text-sm mt-2">This is a digitally generated invoice from TwinStar</p>
                     </div>
                   </div>
                 </div>

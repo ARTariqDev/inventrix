@@ -2,7 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 export const metadata = {
-  title: "Inventrix",
+  title: "TwinStar",
   description: "Your all-in-one inventory management system to keep everything organized, simple, and scalable.",
   keywords: ["inventory", "management", "system", "organization", "business"],
   icons: {

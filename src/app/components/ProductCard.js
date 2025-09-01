@@ -15,7 +15,8 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
       name: product.name || '',
       description: product.description || '',
       category: product.category || '',
-      price: product.price || '',
+      purchasePrice: product.purchasePrice || '',
+      salePrice: product.salePrice || '',
       stock: product.stock || '',
       isActive: product.isActive
     });
@@ -78,7 +79,8 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
           id: product._id, 
           updates: {
             ...editForm,
-            price: Number(editForm.price) || 0,
+            purchasePrice: Number(editForm.purchasePrice) || 0,
+            salePrice: Number(editForm.salePrice) || 0,
             stock: Number(editForm.stock) || 0
           }
         }),
@@ -219,7 +221,7 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
             />
           </div>
 
-          {/* Category, Price, Stock Row */}
+          {/* Category and Prices Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,14 +240,14 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price *
+                Purchase Price *
               </label>
               <div className="relative">
                 <Banknote className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
-                  value={editForm.price || ''}
-                  onChange={(e) => handleEditChange('price', formatPrice(e.target.value))}
+                  value={editForm.purchasePrice || ''}
+                  onChange={(e) => handleEditChange('purchasePrice', formatPrice(e.target.value))}
                   onKeyDown={(e) => handleKeyPress(e, 'price')}
                   className="w-full pl-9 pr-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
                   placeholder="0.00"
@@ -257,21 +259,41 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock *
+                Sale Price *
               </label>
               <div className="relative">
-                <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Banknote className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400" size={16} />
                 <input
                   type="text"
-                  value={editForm.stock || ''}
-                  onChange={(e) => handleEditChange('stock', formatStock(e.target.value))}
-                  onKeyDown={(e) => handleKeyPress(e, 'stock')}
+                  value={editForm.salePrice || ''}
+                  onChange={(e) => handleEditChange('salePrice', formatPrice(e.target.value))}
+                  onKeyDown={(e) => handleKeyPress(e, 'price')}
                   className="w-full pl-9 pr-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
-                  placeholder="0"
-                  inputMode="numeric"
+                  placeholder="0.00"
+                  inputMode="decimal"
                   required
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Stock Row */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stock *
+            </label>
+            <div className="relative">
+              <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                value={editForm.stock || ''}
+                onChange={(e) => handleEditChange('stock', formatStock(e.target.value))}
+                onKeyDown={(e) => handleKeyPress(e, 'stock')}
+                className="w-full pl-9 pr-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                placeholder="0"
+                inputMode="numeric"
+                required
+              />
             </div>
           </div>
 
@@ -303,7 +325,7 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
           </button>
           <button
             onClick={saveEdit}
-            disabled={isUpdating || !editForm.name || !editForm.category}
+            disabled={isUpdating || !editForm.name || !editForm.category || !editForm.purchasePrice || !editForm.salePrice}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={18} />
@@ -373,26 +395,35 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
 
       {/* Price and Stock Section */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-gray-700">
-            <Banknote size={18} className="text-green-500" />
-            <span className="text-2xl font-bold text-green-600">
-              Rs {Number(product.price).toFixed(2)}
+            <Banknote size={16} className="text-red-500" />
+            <span className="text-sm font-medium text-gray-600">Purchase:</span>
+            <span className="text-lg font-bold text-red-600">
+              Rs {Number(product.purchasePrice).toFixed(2)}
             </span>
           </div>
-          
+          <div className="flex items-center gap-2 text-gray-700">
+            <Banknote size={16} className="text-green-500" />
+            <span className="text-sm font-medium text-gray-600">Sale:</span>
+            <span className="text-xl font-bold text-green-600">
+              Rs {Number(product.salePrice).toFixed(2)}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2">
             <Package size={18} className="text-gray-500" />
             <span className="text-lg font-semibold text-gray-600">
               {product.stock}
             </span>
           </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${stockStatus.color}`}>
+            <span className="mr-1">{stockStatus.icon}</span>
+            {stockStatus.text}
+          </span>
         </div>
-        
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${stockStatus.color}`}>
-          <span className="mr-1">{stockStatus.icon}</span>
-          {stockStatus.text}
-        </span>
       </div>
 
       {/* Action Buttons */}

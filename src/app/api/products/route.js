@@ -52,23 +52,43 @@ export async function GET(request) {
       filter.userName = { $regex: username, $options: "i" };
     }
 
-    // ✅ Price filtering
-    const price = searchParams.get("price");
-    const priceOperator = searchParams.get("priceOperator") || "equal";
-    if (price) {
-      const priceNum = Number(price);
-      switch (priceOperator) {
+    // ✅ Sale Price filtering
+    const salePrice = searchParams.get("salePrice");
+    const salePriceOperator = searchParams.get("salePriceOperator") || "equal";
+    if (salePrice) {
+      const salePriceNum = Number(salePrice);
+      switch (salePriceOperator) {
         case "greater":
-          filter.price = { $gt: priceNum };
+          filter.salePrice = { $gt: salePriceNum };
           break;
         case "less":
-          filter.price = { $lt: priceNum };
+          filter.salePrice = { $lt: salePriceNum };
           break;
         case "not-equal":
-          filter.price = { $ne: priceNum };
+          filter.salePrice = { $ne: salePriceNum };
           break;
         default:
-          filter.price = priceNum;
+          filter.salePrice = salePriceNum;
+      }
+    }
+
+    // ✅ Purchase Price filtering
+    const purchasePrice = searchParams.get("purchasePrice");
+    const purchasePriceOperator = searchParams.get("purchasePriceOperator") || "equal";
+    if (purchasePrice) {
+      const purchasePriceNum = Number(purchasePrice);
+      switch (purchasePriceOperator) {
+        case "greater":
+          filter.purchasePrice = { $gt: purchasePriceNum };
+          break;
+        case "less":
+          filter.purchasePrice = { $lt: purchasePriceNum };
+          break;
+        case "not-equal":
+          filter.purchasePrice = { $ne: purchasePriceNum };
+          break;
+        default:
+          filter.purchasePrice = purchasePriceNum;
       }
     }
 
@@ -132,18 +152,25 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, description, category, price, stock } = await request.json();
+    const { name, description, category, purchasePrice, salePrice, stock } = await request.json();
 
-    if (!name || !category || price === undefined || stock === undefined) {
+    if (!name || !category || purchasePrice === undefined || salePrice === undefined || stock === undefined) {
       return NextResponse.json(
-        { error: "Name, category, price, and stock are required" },
+        { error: "Name, category, purchase price, sale price, and stock are required" },
         { status: 400 }
       );
     }
 
-    if (isNaN(price) || price < 0) {
+    if (isNaN(purchasePrice) || purchasePrice < 0) {
       return NextResponse.json(
-        { error: "Price must be a valid non-negative number" },
+        { error: "Purchase price must be a valid non-negative number" },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(salePrice) || salePrice < 0) {
+      return NextResponse.json(
+        { error: "Sale price must be a valid non-negative number" },
         { status: 400 }
       );
     }
@@ -166,7 +193,8 @@ export async function POST(request) {
       name: name.trim(),
       description: description?.trim() || "",
       category: category.trim(),
-      price: Number(price),
+      purchasePrice: Number(purchasePrice),
+      salePrice: Number(salePrice),
       stock: Number(stock),
       userId: user._id,
       userName: user.fullName,
@@ -222,19 +250,26 @@ export async function PUT(request) {
       );
     }
 
-    const { name, description, category, price, stock, isActive } = updates;
+    const { name, description, category, purchasePrice, salePrice, stock, isActive } = updates;
 
     // Validation
-    if (!name || !category || price === undefined || stock === undefined) {
+    if (!name || !category || purchasePrice === undefined || salePrice === undefined || stock === undefined) {
       return NextResponse.json(
-        { error: "Name, category, price, and stock are required" },
+        { error: "Name, category, purchase price, sale price, and stock are required" },
         { status: 400 }
       );
     }
 
-    if (isNaN(price) || price < 0) {
+    if (isNaN(purchasePrice) || purchasePrice < 0) {
       return NextResponse.json(
-        { error: "Price must be a valid non-negative number" },
+        { error: "Purchase price must be a valid non-negative number" },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(salePrice) || salePrice < 0) {
+      return NextResponse.json(
+        { error: "Sale price must be a valid non-negative number" },
         { status: 400 }
       );
     }
@@ -262,7 +297,8 @@ export async function PUT(request) {
         name: name.trim(),
         description: description?.trim() || "",
         category: category.trim(),
-        price: Number(price),
+        purchasePrice: Number(purchasePrice),
+        salePrice: Number(salePrice),
         stock: Number(stock),
         isActive: isActive !== undefined ? isActive : existingProduct.isActive
       },
