@@ -263,7 +263,7 @@ export default function StatsPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString([], {
       month: 'short',
       day: 'numeric'
     });
@@ -351,7 +351,11 @@ export default function StatsPage() {
                           {order.receivedBy}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(order.orderDate).toLocaleDateString()}
+                          {new Date(order.orderDate).toLocaleDateString([], {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>

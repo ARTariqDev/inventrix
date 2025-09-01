@@ -171,7 +171,7 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString([], {
       year: 'numeric',
       month: 'short',
       day: 'numeric'

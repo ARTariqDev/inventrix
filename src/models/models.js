@@ -212,7 +212,7 @@ OrderSchema.pre("save", async function (next) {
 
       if (!this.orderTime) {
         const now = new Date();
-        this.orderTime = now.toLocaleTimeString('en-US', { 
+        this.orderTime = now.toLocaleTimeString([], { 
           hour12: false, 
           hour: '2-digit', 
           minute: '2-digit', 

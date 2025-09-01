@@ -481,7 +481,15 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <Calendar className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-600">
-                        {new Date(order.orderDate).toLocaleDateString()} at {order.orderTime}
+                        {new Date(order.orderDate).toLocaleDateString([], {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })} at {new Date(order.orderDate).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </span>
                     </div>
                   </div>

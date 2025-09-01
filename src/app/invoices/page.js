@@ -74,7 +74,7 @@ export default function InvoicesPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString([], {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -399,7 +399,11 @@ export default function InvoicesPage() {
                         <div className="text-gray-600">
                           <p>Invoice #: {selectedOrder.orderId}</p>
                           <p>Date: {formatDate(selectedOrder.orderDate)}</p>
-                          <p>Time: {selectedOrder.orderTime}</p>
+                          <p>Time: {new Date(selectedOrder.orderDate).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}</p>
                         </div>
                       </div>
                       <div className="text-right">

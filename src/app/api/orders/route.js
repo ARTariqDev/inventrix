@@ -123,9 +123,9 @@ export async function POST(request) {
       });
     }
 
-    // Generate current time
+    // Generate current time - store as ISO string to preserve timezone info
     const now = new Date();
-    const orderTime = now.toLocaleTimeString('en-US', { 
+    const orderTime = now.toLocaleTimeString([], { 
       hour12: false, 
       hour: '2-digit', 
       minute: '2-digit', 
