@@ -140,7 +140,8 @@ export default function StatsPage() {
             name: product.name,
             description: product.description,
             category: product.category,
-            price: product.price,
+            purchasePrice: product.purchasePrice || product.price || 0,
+            salePrice: product.salePrice || product.price || 0,
             stock: newStock,
             isActive: product.isActive
           }
@@ -421,7 +422,7 @@ export default function StatsPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
+                      <span className="text-lg font-bold text-gray-900">{formatCurrency(product.salePrice || product.price || 0)}</span>
                       <div className="w-full max-w-20 bg-gray-200 rounded-full h-2 ml-3">
                         <div 
                           className={`h-2 rounded-full ${
@@ -666,11 +667,12 @@ export default function StatsPage() {
               change: stats?.overview?.productsChange
             },
             {
-              title: "Avg Order Value",
-              value: formatCurrency(stats?.overview?.avgOrderValue || 0),
+              title: "Total Profit",
+              value: formatCurrency(stats?.overview?.totalProfit || 0),
               icon: TrendingUp,
               color: "from-orange-500 to-red-500",
-              change: stats?.overview?.avgOrderValueChange
+              change: stats?.overview?.profitChange,
+              subtitle: `${(stats?.overview?.profitMargin || 0).toFixed(1)}% margin`
             }
           ].map((card, index) => (
             <motion.div
@@ -709,6 +711,11 @@ export default function StatsPage() {
               <p className="text-gray-600 text-sm">
                 {card.title}
               </p>
+              {card.subtitle && (
+                <p className="text-gray-500 text-xs mt-1">
+                  {card.subtitle}
+                </p>
+              )}
             </motion.div>
           ))}
         </div>

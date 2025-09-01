@@ -86,9 +86,11 @@ export async function GET(request) {
       dailyRevenue,
       statusDistribution,
       monthlyTrends,
+      profitData,
       // Previous period data for comparison
       previousOrders,
-      previousRevenue
+      previousRevenue,
+      previousProfitData
     ] = await Promise.all([
       // Total orders count
       Order.countDocuments(orderFilter),
@@ -198,12 +200,78 @@ export async function GET(request) {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
       ]),
 
+      // Total profit calculation
+      Order.aggregate([
+        { $match: orderFilter },
+        { $unwind: "$orderItems" },
+        {
+          $lookup: {
+            from: "products",
+            localField: "orderItems.productId",
+            foreignField: "_id",
+            as: "productInfo"
+          }
+        },
+        { $unwind: "$productInfo" },
+        {
+          $group: {
+            _id: null,
+            totalProfit: {
+              $sum: {
+                $multiply: [
+                  { $subtract: ["$productInfo.salePrice", "$productInfo.purchasePrice"] },
+                  "$orderItems.quantity"
+                ]
+              }
+            },
+            totalCost: {
+              $sum: {
+                $multiply: ["$productInfo.purchasePrice", "$orderItems.quantity"]
+              }
+            },
+            totalRevenue: {
+              $sum: {
+                $multiply: ["$productInfo.salePrice", "$orderItems.quantity"]
+              }
+            }
+          }
+        }
+      ]),
+
       // Previous period data for comparison
       Order.countDocuments(previousOrderFilter),
 
       Order.aggregate([
         { $match: previousOrderFilter },
         { $group: { _id: null, total: { $sum: "$orderTotal" } } }
+      ]),
+
+      // Previous period profit calculation
+      Order.aggregate([
+        { $match: previousOrderFilter },
+        { $unwind: "$orderItems" },
+        {
+          $lookup: {
+            from: "products",
+            localField: "orderItems.productId",
+            foreignField: "_id",
+            as: "productInfo"
+          }
+        },
+        { $unwind: "$productInfo" },
+        {
+          $group: {
+            _id: null,
+            totalProfit: {
+              $sum: {
+                $multiply: [
+                  { $subtract: ["$productInfo.salePrice", "$productInfo.purchasePrice"] },
+                  "$orderItems.quantity"
+                ]
+              }
+            }
+          }
+        }
       ])
     ]);
 
@@ -239,6 +307,11 @@ export async function GET(request) {
     const previousRevenueValue = previousRevenue[0]?.total || 0;
     const previousAvgOrderValue = previousOrders > 0 ? previousRevenueValue / previousOrders : 0;
 
+    // Calculate profit metrics
+    const currentProfit = profitData[0]?.totalProfit || 0;
+    const previousProfitValue = previousProfitData[0]?.totalProfit || 0;
+    const profitMargin = currentRevenue > 0 ? (currentProfit / currentRevenue) * 100 : 0;
+
     const calculateChange = (current, previous) => {
       if (previous === 0) return current > 0 ? 100 : 0;
       return ((current - previous) / previous) * 100;
@@ -247,6 +320,7 @@ export async function GET(request) {
     const revenueChange = calculateChange(currentRevenue, previousRevenueValue);
     const ordersChange = calculateChange(totalOrders, previousOrders);
     const avgOrderValueChange = calculateChange(avgOrderValue, previousAvgOrderValue);
+    const profitChange = calculateChange(currentProfit, previousProfitValue);
 
     const totalStock = await Product.aggregate([
       { $match: productFilter },
@@ -261,12 +335,15 @@ export async function GET(request) {
           totalRevenue: currentRevenue,
           totalProducts,
           avgOrderValue,
+          totalProfit: currentProfit,
+          profitMargin,
           totalStock: totalStock[0]?.total || 0,
           lowStockCount: lowStockProducts.length,
           // Percentage changes
           revenueChange,
           ordersChange,
           avgOrderValueChange,
+          profitChange,
           productsChange: 0 // Products don't change much period to period
         },
         recentOrders,

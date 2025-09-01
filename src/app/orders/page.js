@@ -742,7 +742,7 @@ export default function OrdersPage() {
                               <option value="">Select a product</option>
                               {products.map((product) => (
                                 <option key={product._id} value={product._id}>
-                                  {product.name} - Rs {product.price} (Stock: {product.stock})
+                                  {product.name} - Rs {product.salePrice} (Stock: {product.stock})
                                 </option>
                               ))}
                             </select>
@@ -784,7 +784,7 @@ export default function OrdersPage() {
                           .map((item, idx) => {
                             const product = products.find(p => p._id === item.productId);
                             if (!product) return null;
-                            const itemTotal = product.price * item.quantity;
+                            const itemTotal = product.salePrice * item.quantity;
                             return (
                               <div key={idx} className="flex justify-between text-sm">
                                 <span className="text-gray-700">
@@ -804,7 +804,7 @@ export default function OrdersPage() {
                                 .filter(item => item.productId && item.quantity > 0)
                                 .reduce((total, item) => {
                                   const product = products.find(p => p._id === item.productId);
-                                  return product ? total + (product.price * item.quantity) : total;
+                                  return product ? total + (product.salePrice * item.quantity) : total;
                                 }, 0)
                                 .toFixed(2)}
                             </span>
