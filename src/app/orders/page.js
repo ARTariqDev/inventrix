@@ -794,11 +794,11 @@ export default function OrdersPage() {
                         <input
                           type="number"
                           value={orderForm.creditAmount}
-                          onChange={(e) => handleOrderFormChange('creditAmount', Number(e.target.value) || 0)}
+                          onChange={(e) => handleOrderFormChange('creditAmount', parseInt(e.target.value) || 0)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="Enter amount paid on spot"
                           min="0"
-                          step="0.01"
+                          step="1"
                           required
                         />
                       </div>
