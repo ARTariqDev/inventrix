@@ -83,7 +83,7 @@ const ProductSchema = new mongoose.Schema(
       },
     },
     stock: {
-      
+
       type: Number,
       required: true,
       min: [0, "Stock cannot be negative"],
@@ -187,8 +187,30 @@ const OrderSchema = new mongoose.Schema(
     },
     orderStatus: { 
       type: String, 
-      enum: ["confirmed", "shipped", "delivered", "cancelled"], 
+      enum: ["confirmed", "shipped", "delivered", "cancelled", "credit"], 
       default: "confirmed" 
+    },
+    creditAmount: {
+      type: Number,
+      default: 0,
+      min: [0, "Credit amount cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Credit amount must be a positive number with at most 2 decimal places",
+      },
+    },
+    remainingAmount: {
+      type: Number,
+      default: 0,
+      min: [0, "Remaining amount cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Remaining amount must be a positive number with at most 2 decimal places",
+      },
     },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     userName: { type: String, required: true, trim: true, maxlength: 100 },
@@ -239,18 +261,34 @@ OrderSchema.pre("save", async function (next) {
       }
       this.orderTotal = calculatedTotal;
 
+      // Calculate remaining amount if status is credit
+      if (this.orderStatus === 'credit') {
+        this.remainingAmount = Math.max(0, this.orderTotal - (this.creditAmount || 0));
+      } else {
+        this.creditAmount = 0;
+        this.remainingAmount = 0;
+      }
+
       next();
     } catch (error) {
       next(error);
     }
   } else {
-    if (this.isModified('orderItems')) {
+    if (this.isModified('orderItems') || this.isModified('creditAmount') || this.isModified('orderStatus')) {
       let calculatedTotal = 0;
       for (let item of this.orderItems) {
         item.itemTotal = item.productPrice * item.quantity;
         calculatedTotal += item.itemTotal;
       }
       this.orderTotal = calculatedTotal;
+
+      // Calculate remaining amount if status is credit
+      if (this.orderStatus === 'credit') {
+        this.remainingAmount = Math.max(0, this.orderTotal - (this.creditAmount || 0));
+      } else {
+        this.creditAmount = 0;
+        this.remainingAmount = 0;
+      }
     }
     next();
   }

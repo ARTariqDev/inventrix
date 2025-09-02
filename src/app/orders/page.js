@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Filter, Search, Plus, X, Package, Calendar, Banknote, User, Clock, Truck, CheckCircle, XCircle } from "lucide-react";
 import Layout from "../components/Layout";
@@ -26,7 +26,9 @@ export default function OrdersPage() {
     receivedBy: "",
     address: "",
     phoneNumber: "",
-    orderStatus: "confirmed"
+    orderStatus: "confirmed",
+    creditAmount: 0,
+    remainingAmount: 0
   });
 
   // No need to send userId; backend uses cookie
@@ -62,6 +64,31 @@ export default function OrdersPage() {
     fetchOrders();
     fetchProducts();
   }, []);
+
+  // Define calculateRemainingAmount function
+  const calculateRemainingAmount = useCallback((formData) => {
+    const totalAmount = formData.orderItems
+      .filter(item => item.productId && item.quantity > 0)
+      .reduce((total, item) => {
+        const product = products.find(p => p._id === item.productId);
+        return product ? total + (product.salePrice * item.quantity) : total;
+      }, 0);
+    
+    const creditAmount = Number(formData.creditAmount) || 0;
+    const remainingAmount = Math.max(0, totalAmount - creditAmount);
+    
+    setOrderForm(prev => ({
+      ...prev,
+      remainingAmount: remainingAmount
+    }));
+  }, [products]);
+
+  // Recalculate remaining amount when order items or credit amount changes
+  useEffect(() => {
+    if (orderForm.orderStatus === 'credit') {
+      calculateRemainingAmount(orderForm);
+    }
+  }, [orderForm, calculateRemainingAmount]);
 
   // Apply filters and search
   useEffect(() => {
@@ -163,17 +190,38 @@ export default function OrdersPage() {
 
   const handleOrderFormChange = (field, value, index = null) => {
     if (field === 'orderItems' && index !== null) {
-      setOrderForm(prev => ({
-        ...prev,
-        orderItems: prev.orderItems.map((item, i) => 
+      const newOrderForm = {
+        ...orderForm,
+        orderItems: orderForm.orderItems.map((item, i) => 
           i === index ? { ...item, [value.field]: value.value } : item
         )
-      }));
+      };
+      setOrderForm(newOrderForm);
+      
+      // If credit status is selected, recalculate remaining amount
+      if (newOrderForm.orderStatus === 'credit') {
+        calculateRemainingAmount(newOrderForm);
+      }
+    } else if (field === 'creditAmount') {
+      const newOrderForm = { ...orderForm, [field]: value };
+      setOrderForm(newOrderForm);
+      calculateRemainingAmount(newOrderForm);
     } else {
-      setOrderForm(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      const newOrderForm = { ...orderForm, [field]: value };
+      setOrderForm(newOrderForm);
+      
+      // If status changed to credit, calculate remaining amount
+      if (field === 'orderStatus' && value === 'credit') {
+        calculateRemainingAmount(newOrderForm);
+      } else if (field === 'orderStatus' && value !== 'credit') {
+        // Reset credit fields if status is not credit
+        setOrderForm(prev => ({
+          ...prev,
+          [field]: value,
+          creditAmount: 0,
+          remainingAmount: 0
+        }));
+      }
     }
   };
 
@@ -204,7 +252,9 @@ export default function OrdersPage() {
         receivedBy: order.receivedBy,
         address: order.address || "",
         phoneNumber: order.phoneNumber || "",
-        orderStatus: order.orderStatus
+        orderStatus: order.orderStatus,
+        creditAmount: order.creditAmount || 0,
+        remainingAmount: order.remainingAmount || 0
       });
     } else {
       setEditingOrder(null);
@@ -213,7 +263,9 @@ export default function OrdersPage() {
         receivedBy: "",
         address: "",
         phoneNumber: "",
-        orderStatus: "confirmed"
+        orderStatus: "confirmed",
+        creditAmount: 0,
+        remainingAmount: 0
       });
     }
     setShowOrderModal(true);
@@ -294,6 +346,7 @@ export default function OrdersPage() {
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'credit': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -416,6 +469,7 @@ export default function OrdersPage() {
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
+                      <option value="credit">Credit</option>
                     </select>
                   </div>
 
@@ -532,6 +586,24 @@ export default function OrdersPage() {
                       <strong>Total:</strong> Rs {order.orderTotal.toFixed(2)}
                     </span>
                   </div>
+                  
+                  {/* Credit Information - Only show for credit orders */}
+                  {order.orderStatus === 'credit' && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Banknote className="w-4 h-4 text-green-400" />
+                        <span className="text-sm text-gray-600">
+                          <strong>Credit Amount:</strong> Rs {(order.creditAmount || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Banknote className="w-4 h-4 text-red-400" />
+                        <span className="text-sm text-gray-600">
+                          <strong>Remaining:</strong> Rs {(order.remainingAmount || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Order Items */}
@@ -708,8 +780,42 @@ export default function OrdersPage() {
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
+                      <option value="credit">Credit</option>
                     </select>
                   </div>
+
+                  {/* Credit Amount - Only show when status is credit */}
+                  {orderForm.orderStatus === 'credit' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Credit Amount (Paid on Spot) *
+                        </label>
+                        <input
+                          type="number"
+                          value={orderForm.creditAmount}
+                          onChange={(e) => handleOrderFormChange('creditAmount', Number(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Enter amount paid on spot"
+                          min="0"
+                          step="0.01"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Remaining Amount
+                        </label>
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                          Rs {orderForm.remainingAmount.toFixed(2)}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Total Amount - Credit Amount = Remaining Amount
+                        </p>
+                      </div>
+                    </>
+                  )}
 
                   {/* Order Items */}
                   <div>

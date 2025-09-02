@@ -40,7 +40,7 @@ export async function POST(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderItems, receivedBy, address, phoneNumber, orderStatus = "confirmed" } = body;
+    const { orderItems, receivedBy, address, phoneNumber, orderStatus = "confirmed", creditAmount = 0, remainingAmount = 0 } = body;
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) {
@@ -141,6 +141,8 @@ export async function POST(request) {
       address,
       phoneNumber,
       orderStatus,
+      creditAmount: orderStatus === 'credit' ? Number(creditAmount) || 0 : 0,
+      remainingAmount: orderStatus === 'credit' ? Number(remainingAmount) || 0 : 0,
       userId,
       userName: user.fullName
     });
@@ -179,7 +181,7 @@ export async function PUT(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderId, orderItems, receivedBy, address, phoneNumber, orderStatus } = body;
+    const { orderId, orderItems, receivedBy, address, phoneNumber, orderStatus, creditAmount, remainingAmount } = body;
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) {
@@ -270,7 +272,16 @@ export async function PUT(request) {
     if (receivedBy) existingOrder.receivedBy = receivedBy;
     if (address) existingOrder.address = address;
     if (phoneNumber) existingOrder.phoneNumber = phoneNumber;
-    if (orderStatus) existingOrder.orderStatus = orderStatus;
+    if (orderStatus) {
+      existingOrder.orderStatus = orderStatus;
+      if (orderStatus === 'credit') {
+        existingOrder.creditAmount = Number(creditAmount) || 0;
+        existingOrder.remainingAmount = Number(remainingAmount) || 0;
+      } else {
+        existingOrder.creditAmount = 0;
+        existingOrder.remainingAmount = 0;
+      }
+    }
 
     await existingOrder.save();
     await existingOrder.populate('orderItems.productId', 'name salePrice');
