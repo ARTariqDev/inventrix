@@ -75,20 +75,8 @@ export default function OrdersPage() {
       }, 0);
     
     const creditAmount = Number(formData.creditAmount) || 0;
-    const remainingAmount = Math.max(0, totalAmount - creditAmount);
-    
-    setOrderForm(prev => ({
-      ...prev,
-      remainingAmount: remainingAmount
-    }));
+    return Math.max(0, totalAmount - creditAmount);
   }, [products]);
-
-  // Recalculate remaining amount when order items or credit amount changes
-  useEffect(() => {
-    if (orderForm.orderStatus === 'credit') {
-      calculateRemainingAmount(orderForm);
-    }
-  }, [orderForm, calculateRemainingAmount]);
 
   // Apply filters and search
   useEffect(() => {
@@ -196,32 +184,28 @@ export default function OrdersPage() {
           i === index ? { ...item, [value.field]: value.value } : item
         )
       };
-      setOrderForm(newOrderForm);
       
       // If credit status is selected, recalculate remaining amount
       if (newOrderForm.orderStatus === 'credit') {
-        calculateRemainingAmount(newOrderForm);
+        newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       }
+      setOrderForm(newOrderForm);
     } else if (field === 'creditAmount') {
       const newOrderForm = { ...orderForm, [field]: value };
+      newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       setOrderForm(newOrderForm);
-      calculateRemainingAmount(newOrderForm);
     } else {
       const newOrderForm = { ...orderForm, [field]: value };
-      setOrderForm(newOrderForm);
       
       // If status changed to credit, calculate remaining amount
       if (field === 'orderStatus' && value === 'credit') {
-        calculateRemainingAmount(newOrderForm);
+        newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       } else if (field === 'orderStatus' && value !== 'credit') {
         // Reset credit fields if status is not credit
-        setOrderForm(prev => ({
-          ...prev,
-          [field]: value,
-          creditAmount: 0,
-          remainingAmount: 0
-        }));
+        newOrderForm.creditAmount = 0;
+        newOrderForm.remainingAmount = 0;
       }
+      setOrderForm(newOrderForm);
     }
   };
 
@@ -794,7 +778,7 @@ export default function OrdersPage() {
                         <input
                           type="number"
                           value={orderForm.creditAmount}
-                          onChange={(e) => handleOrderFormChange('creditAmount', parseInt(e.target.value) || 0)}
+                          onChange={(e) => handleOrderFormChange('creditAmount', Number(e.target.value) || 0)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="Enter amount paid on spot"
                           min="0"
