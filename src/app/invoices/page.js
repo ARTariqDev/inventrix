@@ -499,6 +499,24 @@ export default function InvoicesPage() {
                               {formatCurrency(selectedOrder.orderTotal)}
                             </span>
                           </div>
+                          
+                          {/* Payment Details for Credit Orders */}
+                          {selectedOrder.orderStatus === 'credit' && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm text-gray-600">Paid Amount:</span>
+                                <span className="text-sm font-medium text-green-600">
+                                  {formatCurrency(selectedOrder.creditAmount || 0)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Credit Amount:</span>
+                                <span className="text-sm font-medium text-red-600">
+                                  {formatCurrency(selectedOrder.remainingAmount || 0)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

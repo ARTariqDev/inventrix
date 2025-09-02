@@ -264,8 +264,7 @@ export default function ProductsPage() {
     };
     saveCategoryColors(updatedColors);
     setShowColorPicker(false);
-    // Now add the product
-    addProduct();
+    // Color is now selected, user can proceed to create the product
   };
 
   if (loading) {
@@ -700,7 +699,7 @@ export default function ProductsPage() {
                 </div>
 
                 <p className="text-gray-600 mb-6">
-                  This is a new category. Please select a color to represent it throughout the app.
+                  This is a new category. Please select a color to represent it throughout the app. After selecting a color, click &ldquo;Add Product&rdquo; again to create the product.
                 </p>
 
                 {/* Color Grid */}

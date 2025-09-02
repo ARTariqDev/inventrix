@@ -22,13 +22,13 @@ export default function OrdersPage() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [orderForm, setOrderForm] = useState({
-    orderItems: [{ productId: "", quantity: 1 }],
+    orderItems: [{ productId: "", quantity: "" }],
     receivedBy: "",
     address: "",
     phoneNumber: "",
     orderStatus: "confirmed",
-    creditAmount: 0,
-    remainingAmount: 0
+    creditAmount: "", // This stores the paid amount for credit orders
+    remainingAmount: 0 // This stores the credit amount (remaining to be paid)
   });
 
   // No need to send userId; backend uses cookie
@@ -65,16 +65,16 @@ export default function OrdersPage() {
     fetchProducts();
   }, []);
 
-  // Define calculateRemainingAmount function
+  // Define calculateCreditAmount function (calculates remaining credit amount)
   const calculateRemainingAmount = useCallback((formData) => {
     const totalAmount = formData.orderItems
-      .filter(item => item.productId && item.quantity > 0)
+      .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
       .reduce((total, item) => {
         const product = products.find(p => p._id === item.productId);
-        return product ? total + (product.salePrice * item.quantity) : total;
+        return product ? total + (product.salePrice * Number(item.quantity)) : total;
       }, 0);
     
-    const creditAmount = Number(formData.creditAmount) || 0;
+    const creditAmount = formData.creditAmount === '' ? 0 : Number(formData.creditAmount) || 0;
     return Math.max(0, totalAmount - creditAmount);
   }, [products]);
 
@@ -185,7 +185,7 @@ export default function OrdersPage() {
         )
       };
       
-      // If credit status is selected, recalculate remaining amount
+      // If credit status is selected, recalculate credit amount (remaining)
       if (newOrderForm.orderStatus === 'credit') {
         newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       }
@@ -197,12 +197,12 @@ export default function OrdersPage() {
     } else {
       const newOrderForm = { ...orderForm, [field]: value };
       
-      // If status changed to credit, calculate remaining amount
+      // If status changed to credit, calculate credit amount (remaining)
       if (field === 'orderStatus' && value === 'credit') {
         newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       } else if (field === 'orderStatus' && value !== 'credit') {
         // Reset credit fields if status is not credit
-        newOrderForm.creditAmount = 0;
+        newOrderForm.creditAmount = "";
         newOrderForm.remainingAmount = 0;
       }
       setOrderForm(newOrderForm);
@@ -212,7 +212,7 @@ export default function OrdersPage() {
   const addOrderItem = () => {
     setOrderForm(prev => ({
       ...prev,
-      orderItems: [...prev.orderItems, { productId: "", quantity: 1 }]
+      orderItems: [...prev.orderItems, { productId: "", quantity: "" }]
     }));
   };
 
@@ -243,12 +243,12 @@ export default function OrdersPage() {
     } else {
       setEditingOrder(null);
       setOrderForm({
-        orderItems: [{ productId: "", quantity: 1 }],
+        orderItems: [{ productId: "", quantity: "" }],
         receivedBy: "",
         address: "",
         phoneNumber: "",
         orderStatus: "confirmed",
-        creditAmount: 0,
+        creditAmount: "",
         remainingAmount: 0
       });
     }
@@ -259,7 +259,7 @@ export default function OrdersPage() {
     try {
       const orderData = {
         ...orderForm,
-        orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity > 0)
+        orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
       };
 
       if (orderData.orderItems.length === 0) {
@@ -577,13 +577,13 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-2">
                         <Banknote className="w-4 h-4 text-green-400" />
                         <span className="text-sm text-gray-600">
-                          <strong>Credit Amount:</strong> Rs {(order.creditAmount || 0).toFixed(2)}
+                          <strong>Paid Amount:</strong> Rs {(order.creditAmount || 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Banknote className="w-4 h-4 text-red-400" />
                         <span className="text-sm text-gray-600">
-                          <strong>Remaining:</strong> Rs {(order.remainingAmount || 0).toFixed(2)}
+                          <strong>Credit Amount:</strong> Rs {(order.remainingAmount || 0).toFixed(2)}
                         </span>
                       </div>
                     </>
@@ -773,14 +773,14 @@ export default function OrdersPage() {
                     <>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Credit Amount (Paid on Spot) *
+                          Paid Amount (Paid on Spot) *
                         </label>
                         <input
                           type="number"
                           value={orderForm.creditAmount}
-                          onChange={(e) => handleOrderFormChange('creditAmount', Number(e.target.value) || 0)}
+                          onChange={(e) => handleOrderFormChange('creditAmount', e.target.value === '' ? '' : Number(e.target.value) || '')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="Enter amount paid on spot"
+                          placeholder="0"
                           min="0"
                           step="1"
                           required
@@ -833,9 +833,10 @@ export default function OrdersPage() {
                             <input
                               type="number"
                               value={item.quantity}
-                              onChange={(e) => handleOrderFormChange('orderItems', { field: 'quantity', value: parseInt(e.target.value) || 1 }, index)}
+                              onChange={(e) => handleOrderFormChange('orderItems', { field: 'quantity', value: e.target.value === '' ? '' : parseInt(e.target.value) || '' }, index)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                               min="1"
+                              placeholder="1"
                               required
                             />
                           </div>
@@ -858,11 +859,11 @@ export default function OrdersPage() {
                       <h4 className="font-medium text-gray-900 mb-2">Order Preview:</h4>
                       <div className="space-y-1">
                         {orderForm.orderItems
-                          .filter(item => item.productId && item.quantity > 0)
+                          .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
                           .map((item, idx) => {
                             const product = products.find(p => p._id === item.productId);
                             if (!product) return null;
-                            const itemTotal = product.salePrice * item.quantity;
+                            const itemTotal = product.salePrice * Number(item.quantity);
                             return (
                               <div key={idx} className="flex justify-between text-sm">
                                 <span className="text-gray-700">
@@ -879,10 +880,10 @@ export default function OrdersPage() {
                             <span>Total:</span>
                             <span>
                               Rs {orderForm.orderItems
-                                .filter(item => item.productId && item.quantity > 0)
+                                .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
                                 .reduce((total, item) => {
                                   const product = products.find(p => p._id === item.productId);
-                                  return product ? total + (product.salePrice * item.quantity) : total;
+                                  return product ? total + (product.salePrice * Number(item.quantity)) : total;
                                 }, 0)
                                 .toFixed(2)}
                             </span>
@@ -903,7 +904,7 @@ export default function OrdersPage() {
                   </button>
                   <button
                     onClick={saveOrder}
-                    disabled={!orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity > 0).length === 0}
+                    disabled={!orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0).length === 0}
                     className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {editingOrder ? "Update Order" : "Create Order"}

@@ -193,23 +193,23 @@ const OrderSchema = new mongoose.Schema(
     creditAmount: {
       type: Number,
       default: 0,
+      min: [0, "Paid amount cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Paid amount must be a positive number with at most 2 decimal places",
+      },
+    },
+    remainingAmount: {
+      type: Number,
+      default: 0,
       min: [0, "Credit amount cannot be negative"],
       validate: {
         validator: function (v) {
           return v >= 0 && Number(v.toFixed(2)) === v;
         },
         message: "Credit amount must be a positive number with at most 2 decimal places",
-      },
-    },
-    remainingAmount: {
-      type: Number,
-      default: 0,
-      min: [0, "Remaining amount cannot be negative"],
-      validate: {
-        validator: function (v) {
-          return v >= 0 && Number(v.toFixed(2)) === v;
-        },
-        message: "Remaining amount must be a positive number with at most 2 decimal places",
       },
     },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -261,7 +261,7 @@ OrderSchema.pre("save", async function (next) {
       }
       this.orderTotal = calculatedTotal;
 
-      // Calculate remaining amount if status is credit
+      // Calculate credit amount (remaining to be paid) if status is credit
       if (this.orderStatus === 'credit') {
         this.remainingAmount = Math.max(0, this.orderTotal - (this.creditAmount || 0));
       } else {
@@ -282,7 +282,7 @@ OrderSchema.pre("save", async function (next) {
       }
       this.orderTotal = calculatedTotal;
 
-      // Calculate remaining amount if status is credit
+      // Calculate credit amount (remaining to be paid) if status is credit
       if (this.orderStatus === 'credit') {
         this.remainingAmount = Math.max(0, this.orderTotal - (this.creditAmount || 0));
       } else {

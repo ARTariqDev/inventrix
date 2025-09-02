@@ -205,7 +205,7 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
                   animate={{ rotate: isExpanded ? 0 : 180 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {isExpanded ? <X size={18} /> : <Menu size={18} />}
+                  {isExpanded ? <X size={18} /> : <X size={18} />}
                 </motion.div>
               </motion.button>
             </div>
