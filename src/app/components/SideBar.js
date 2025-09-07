@@ -144,7 +144,7 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
 
   return (
     <>
-      {/* Overlay for mobile when sidebar is expanded */}
+      {/* Overlay for mobile when sidebar is expanded i guess*/}
       <AnimatePresence>
         {isMobile && isExpanded && (
           <motion.div
