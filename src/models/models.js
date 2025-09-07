@@ -168,6 +168,28 @@ const OrderSchema = new mongoose.Schema(
         message: "Order total must be a positive number with at most 2 decimal places",
       },
     },
+    subtotal: {
+      type: Number,
+      default: 0,
+      min: [0, "Subtotal cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Subtotal must be a positive number with at most 2 decimal places",
+      },
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount amount cannot be negative"],
+      validate: {
+        validator: function (v) {
+          return v >= 0 && Number(v.toFixed(2)) === v;
+        },
+        message: "Discount amount must be a positive number with at most 2 decimal places",
+      },
+    },
     orderDate: { type: Date, default: Date.now },
     orderTime: { type: String, required: true },
     receivedBy: { type: String, required: true, trim: true, maxlength: 100 },
@@ -259,7 +281,11 @@ OrderSchema.pre("save", async function (next) {
         item.itemTotal = item.productPrice * item.quantity;
         calculatedTotal += item.itemTotal;
       }
-      this.orderTotal = calculatedTotal;
+      
+      // Set subtotal and calculate final total with discount
+      this.subtotal = calculatedTotal;
+      const discountAmount = this.discountAmount || 0;
+      this.orderTotal = Math.max(0, calculatedTotal - discountAmount);
 
       // Calculate credit amount (remaining to be paid) if status is credit
       if (this.orderStatus === 'credit') {
@@ -274,13 +300,17 @@ OrderSchema.pre("save", async function (next) {
       next(error);
     }
   } else {
-    if (this.isModified('orderItems') || this.isModified('creditAmount') || this.isModified('orderStatus')) {
+    if (this.isModified('orderItems') || this.isModified('creditAmount') || this.isModified('orderStatus') || this.isModified('discountAmount')) {
       let calculatedTotal = 0;
       for (let item of this.orderItems) {
         item.itemTotal = item.productPrice * item.quantity;
         calculatedTotal += item.itemTotal;
       }
-      this.orderTotal = calculatedTotal;
+      
+      // Set subtotal and calculate final total with discount
+      this.subtotal = calculatedTotal;
+      const discountAmount = this.discountAmount || 0;
+      this.orderTotal = Math.max(0, calculatedTotal - discountAmount);
 
       // Calculate credit amount (remaining to be paid) if status is credit
       if (this.orderStatus === 'credit') {

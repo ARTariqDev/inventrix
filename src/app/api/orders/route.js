@@ -40,7 +40,7 @@ export async function POST(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderItems, receivedBy, address, phoneNumber, orderStatus = "confirmed", creditAmount = 0, remainingAmount = 0 } = body;
+    const { orderItems, receivedBy, address, phoneNumber, orderStatus = "confirmed", creditAmount = 0, remainingAmount = 0, discountAmount = 0 } = body;
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) {
@@ -123,6 +123,10 @@ export async function POST(request) {
       });
     }
 
+    // Apply discount if provided
+    const finalDiscount = Number(discountAmount) || 0;
+    const finalTotal = Math.max(0, calculatedTotal - finalDiscount);
+
     // Generate current time - store as ISO string to preserve timezone info
     const now = new Date();
     const orderTime = now.toLocaleTimeString([], { 
@@ -135,14 +139,16 @@ export async function POST(request) {
     // Create the order with all required fields
     const order = new Order({
       orderItems: enrichedItems,
-      orderTotal: calculatedTotal,
+      orderTotal: finalTotal,
+      subtotal: calculatedTotal,
+      discountAmount: finalDiscount,
       orderTime: orderTime,
       receivedBy,
       address,
       phoneNumber,
       orderStatus,
       creditAmount: orderStatus === 'credit' ? Number(creditAmount) || 0 : 0,
-      remainingAmount: orderStatus === 'credit' ? Number(remainingAmount) || 0 : 0,
+      remainingAmount: orderStatus === 'credit' ? Math.max(0, finalTotal - (Number(creditAmount) || 0)) : 0,
       userId,
       userName: user.fullName
     });
@@ -181,7 +187,7 @@ export async function PUT(request) {
     await connectDB();
     
     const body = await request.json();
-    const { orderId, orderItems, receivedBy, address, phoneNumber, orderStatus, creditAmount, remainingAmount } = body;
+    const { orderId, orderItems, receivedBy, address, phoneNumber, orderStatus, creditAmount, remainingAmount, discountAmount } = body;
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) {
@@ -256,8 +262,13 @@ export async function PUT(request) {
         });
       }
 
+      const finalDiscount = Number(discountAmount) || 0;
+      const finalTotal = Math.max(0, calculatedTotal - finalDiscount);
+
       existingOrder.orderItems = enrichedItems;
-      existingOrder.orderTotal = calculatedTotal;
+      existingOrder.orderTotal = finalTotal;
+      existingOrder.subtotal = calculatedTotal;
+      existingOrder.discountAmount = finalDiscount;
 
       // Update product stock with new quantities
       for (const item of enrichedItems) {
@@ -272,11 +283,19 @@ export async function PUT(request) {
     if (receivedBy) existingOrder.receivedBy = receivedBy;
     if (address) existingOrder.address = address;
     if (phoneNumber) existingOrder.phoneNumber = phoneNumber;
+    if (discountAmount !== undefined) {
+      existingOrder.discountAmount = Number(discountAmount) || 0;
+      // Recalculate total if only discount is being updated
+      if (!orderItems) {
+        const subtotal = existingOrder.subtotal || existingOrder.orderTotal + (existingOrder.discountAmount || 0);
+        existingOrder.orderTotal = Math.max(0, subtotal - existingOrder.discountAmount);
+      }
+    }
     if (orderStatus) {
       existingOrder.orderStatus = orderStatus;
       if (orderStatus === 'credit') {
         existingOrder.creditAmount = Number(creditAmount) || 0;
-        existingOrder.remainingAmount = Number(remainingAmount) || 0;
+        existingOrder.remainingAmount = Math.max(0, existingOrder.orderTotal - existingOrder.creditAmount);
       } else {
         existingOrder.creditAmount = 0;
         existingOrder.remainingAmount = 0;

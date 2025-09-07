@@ -26,6 +26,7 @@ export default function ProductsPage() {
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addingProduct, setAddingProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     name: "",
     description: "",
@@ -207,8 +208,67 @@ export default function ProductsPage() {
     }));
   };
 
+  // Format price input to only allow valid decimal numbers
+  const formatPriceInput = (value) => {
+    // Remove all non-digit and non-decimal characters
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    
+    // Split by decimal point
+    const parts = cleaned.split('.');
+    
+    // If more than one decimal point, only keep the first one
+    if (parts.length > 2) {
+      return parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit decimal places to 2
+    if (parts[1] && parts[1].length > 2) {
+      return parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    return cleaned;
+  };
+
+  // Handle key press for price inputs
+  const handlePriceKeyPress = (e) => {
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+    ];
+    
+    const isNumber = /[0-9]/.test(e.key);
+    const isDecimal = e.key === '.' && !e.target.value.includes('.');
+    
+    // Allow special keys, numbers, and one decimal point
+    if (!allowedKeys.includes(e.key) && !isNumber && !isDecimal) {
+      e.preventDefault();
+    }
+  };
+
+  // Format stock input to only allow whole numbers
+  const formatStockInput = (value) => {
+    return value.replace(/[^0-9]/g, '');
+  };
+
+  // Handle key press for stock input
+  const handleStockKeyPress = (e) => {
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+    ];
+    
+    const isNumber = /[0-9]/.test(e.key);
+    
+    // Only allow special keys and numbers
+    if (!allowedKeys.includes(e.key) && !isNumber) {
+      e.preventDefault();
+    }
+  };
+
 
   const addProduct = async () => {
+    if (addingProduct) return; // Prevent double submission
+    
     try {
       // If it's a new category and no color is assigned, require color selection
       if (isNewCategory(newProductForm.category) && !categoryColors[newProductForm.category]) {
@@ -216,13 +276,15 @@ export default function ProductsPage() {
         return;
       }
 
+      setAddingProduct(true);
+
       const productData = {
         name: newProductForm.name.trim(),
         description: newProductForm.description.trim(),
         category: newProductForm.category.trim(),
-        purchasePrice: parseFloat(newProductForm.purchasePrice) || 0,
-        salePrice: parseFloat(newProductForm.salePrice) || 0,
-        stock: parseInt(newProductForm.stock) || 0,
+        purchasePrice: Math.max(0, parseFloat(newProductForm.purchasePrice) || 0),
+        salePrice: Math.max(0, parseFloat(newProductForm.salePrice) || 0),
+        stock: Math.max(0, parseInt(newProductForm.stock) || 0),
         isActive: true
       };
 
@@ -249,10 +311,14 @@ export default function ProductsPage() {
         setShowAddModal(false);
         await fetchProducts();
       } else {
-        console.error("Failed to add product");
+        const error = await response.json();
+        alert(error.error || "Failed to add product");
       }
     } catch (error) {
       console.error("Error adding product:", error);
+      alert("Error adding product");
+    } finally {
+      setAddingProduct(false);
     }
   };
 
@@ -602,7 +668,8 @@ export default function ProductsPage() {
                         <input
                           type="text"
                           value={newProductForm.purchasePrice}
-                          onChange={(e) => handleNewProductChange('purchasePrice', e.target.value)}
+                          onChange={(e) => handleNewProductChange('purchasePrice', formatPriceInput(e.target.value))}
+                          onKeyDown={handlePriceKeyPress}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="0.00"
                           inputMode="decimal"
@@ -620,7 +687,8 @@ export default function ProductsPage() {
                         <input
                           type="text"
                           value={newProductForm.salePrice}
-                          onChange={(e) => handleNewProductChange('salePrice', e.target.value)}
+                          onChange={(e) => handleNewProductChange('salePrice', formatPriceInput(e.target.value))}
+                          onKeyDown={handlePriceKeyPress}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="0.00"
                           inputMode="decimal"
@@ -637,7 +705,8 @@ export default function ProductsPage() {
                     <input
                       type="text"
                       value={newProductForm.stock}
-                      onChange={(e) => handleNewProductChange('stock', e.target.value)}
+                      onChange={(e) => handleNewProductChange('stock', formatStockInput(e.target.value))}
+                      onKeyDown={handleStockKeyPress}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                       placeholder="0"
                       inputMode="numeric"
@@ -656,10 +725,17 @@ export default function ProductsPage() {
                   </button>
                   <button
                     onClick={addProduct}
-                    disabled={!newProductForm.name || !newProductForm.category || !newProductForm.purchasePrice || !newProductForm.salePrice}
-                    className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={addingProduct || !newProductForm.name || !newProductForm.category || !newProductForm.purchasePrice || !newProductForm.salePrice}
+                    className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
-                    Add Product
+                    {addingProduct ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      "Add Product"
+                    )}
                   </button>
                 </div>
               </motion.div>

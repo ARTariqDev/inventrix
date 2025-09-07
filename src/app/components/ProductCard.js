@@ -32,37 +32,50 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   };
 
   const formatPrice = (value) => {
+    // Remove all non-digit and non-decimal characters
     const cleaned = value.replace(/[^0-9.]/g, '');
+    
+    // Split by decimal point
     const parts = cleaned.split('.');
+    
+    // If more than one decimal point, only keep the first one
     if (parts.length > 2) {
       return parts[0] + '.' + parts.slice(1).join('');
     }
+    
+    // Limit decimal places to 2
     if (parts[1] && parts[1].length > 2) {
       return parts[0] + '.' + parts[1].substring(0, 2);
     }
+    
     return cleaned;
   };
 
   const formatStock = (value) => {
-    // Only allow whole numbers
+    // Only allow whole numbers (remove all non-digit characters)
     return value.replace(/[^0-9]/g, '');
   };
 
   const handleKeyPress = (e, fieldType) => {
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+    ];
+    
     if (fieldType === 'price') {
-      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'];
       const isNumber = /[0-9]/.test(e.key);
       const isDecimal = e.key === '.' && !e.target.value.includes('.');
       
+      // Allow special keys, numbers, and one decimal point
       if (!allowedKeys.includes(e.key) && !isNumber && !isDecimal) {
         e.preventDefault();
       }
     }
     
     if (fieldType === 'stock') {
-      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'];
       const isNumber = /[0-9]/.test(e.key);
       
+      // Only allow special keys and numbers
       if (!allowedKeys.includes(e.key) && !isNumber) {
         e.preventDefault();
       }
@@ -70,6 +83,8 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   };
 
   const saveEdit = async () => {
+    if (isUpdating) return; // Prevent double submission
+    
     setIsUpdating(true);
     try {
       const response = await fetch("/api/products", {
@@ -104,6 +119,8 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   };
 
   const deleteProduct = async () => {
+    if (isDeleting) return; // Prevent double submission
+    
     if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) {
       return;
     }
@@ -240,7 +257,7 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Purchase Price *
+                Purchase Price 
               </label>
               <div className="relative">
                 <Banknote className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
@@ -328,8 +345,17 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
             disabled={isUpdating || !editForm.name || !editForm.category || !editForm.purchasePrice || !editForm.salePrice}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save size={18} />
-            {isUpdating ? 'Saving...' : 'Save Changes'}
+            {isUpdating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                Save Changes
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -443,8 +469,17 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           whileTap={{ scale: 0.95 }}
         >
-          <Trash2 size={18} />
-          {isDeleting ? 'Deleting...' : 'Delete'}
+          {isDeleting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+              Deleting...
+            </>
+          ) : (
+            <>
+              <Trash2 size={18} />
+              Delete
+            </>
+          )}
         </motion.button>
       </div>
       

@@ -87,6 +87,7 @@ export default function InvoicesPage() {
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'credit': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -409,7 +410,7 @@ export default function InvoicesPage() {
                       <div className="text-right">
                         <div className="flex items-center justify-end gap-3 mb-3">
                           <Package className="w-8 h-8 text-purple-600" />
-                          {/*<div className="text-2xl font-bold text-gray-900">Twin Star</div> */}
+                          <div className="text-2xl font-bold text-gray-900">Twin Star</div>
                         </div>
                         <div className="text-gray-600">
                           <p>Inventory Management System</p>
@@ -493,6 +494,27 @@ export default function InvoicesPage() {
                     <div className="flex justify-end mb-8">
                       <div className="w-64">
                         <div className="border-t-2 border-gray-300 pt-4">
+                          {/* Subtotal */}
+                          {selectedOrder.discountAmount > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-base text-gray-700">Subtotal:</span>
+                              <span className="text-base text-gray-900">
+                                {formatCurrency(selectedOrder.subtotal || selectedOrder.orderTotal + (selectedOrder.discountAmount || 0))}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Discount */}
+                          {selectedOrder.discountAmount > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-base text-red-600">Discount:</span>
+                              <span className="text-base font-medium text-red-600">
+                                - {formatCurrency(selectedOrder.discountAmount)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Total Amount */}
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
                             <span className="text-2xl font-bold text-purple-600">

@@ -21,6 +21,7 @@ export default function OrdersPage() {
 
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [orderForm, setOrderForm] = useState({
     orderItems: [{ productId: "", quantity: "" }],
     receivedBy: "",
@@ -28,10 +29,48 @@ export default function OrdersPage() {
     phoneNumber: "",
     orderStatus: "confirmed",
     creditAmount: "", // This stores the paid amount for credit orders
-    remainingAmount: 0 // This stores the credit amount (remaining to be paid)
+    remainingAmount: 0, // This stores the credit amount (remaining to be paid)
+    hasDiscount: false,
+    discountAmount: ""
   });
 
   // No need to send userId; backend uses cookie
+
+  // Input validation functions
+  const formatPriceInput = (value) => {
+    // Remove all non-digit and non-decimal characters
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    
+    // Split by decimal point
+    const parts = cleaned.split('.');
+    
+    // If more than one decimal point, only keep the first one
+    if (parts.length > 2) {
+      return parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit decimal places to 2
+    if (parts[1] && parts[1].length > 2) {
+      return parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    return cleaned;
+  };
+
+  const handlePriceKeyPress = (e) => {
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+    ];
+    
+    const isNumber = /[0-9]/.test(e.key);
+    const isDecimal = e.key === '.' && !e.target.value.includes('.');
+    
+    // Allow special keys, numbers, and one decimal point
+    if (!allowedKeys.includes(e.key) && !isNumber && !isDecimal) {
+      e.preventDefault();
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -65,17 +104,22 @@ export default function OrdersPage() {
     fetchProducts();
   }, []);
 
-  // Define calculateCreditAmount function (calculates remaining credit amount)
+    // Define calculateCreditAmount function (calculates remaining credit amount)
   const calculateRemainingAmount = useCallback((formData) => {
-    const totalAmount = formData.orderItems
+    const subtotal = formData.orderItems
       .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
       .reduce((total, item) => {
         const product = products.find(p => p._id === item.productId);
         return product ? total + (product.salePrice * Number(item.quantity)) : total;
       }, 0);
     
+    // Apply discount if enabled
+    const discountAmount = formData.hasDiscount ? Number(formData.discountAmount) || 0 : 0;
+    const finalTotal = Math.max(0, subtotal - discountAmount);
+    
+    // Calculate remaining amount for credit orders
     const creditAmount = formData.creditAmount === '' ? 0 : Number(formData.creditAmount) || 0;
-    return Math.max(0, totalAmount - creditAmount);
+    return Math.max(0, finalTotal - creditAmount);
   }, [products]);
 
   // Apply filters and search
@@ -190,9 +234,20 @@ export default function OrdersPage() {
         newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       }
       setOrderForm(newOrderForm);
-    } else if (field === 'creditAmount') {
+    } else if (field === 'creditAmount' || field === 'discountAmount') {
       const newOrderForm = { ...orderForm, [field]: value };
-      newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
+      if (newOrderForm.orderStatus === 'credit') {
+        newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
+      }
+      setOrderForm(newOrderForm);
+    } else if (field === 'hasDiscount') {
+      const newOrderForm = { ...orderForm, [field]: value };
+      if (!value) {
+        newOrderForm.discountAmount = "";
+      }
+      if (newOrderForm.orderStatus === 'credit') {
+        newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
+      }
       setOrderForm(newOrderForm);
     } else {
       const newOrderForm = { ...orderForm, [field]: value };
@@ -238,7 +293,9 @@ export default function OrdersPage() {
         phoneNumber: order.phoneNumber || "",
         orderStatus: order.orderStatus,
         creditAmount: order.creditAmount || 0,
-        remainingAmount: order.remainingAmount || 0
+        remainingAmount: order.remainingAmount || 0,
+        hasDiscount: !!(order.discountAmount && order.discountAmount > 0),
+        discountAmount: order.discountAmount || ""
       });
     } else {
       setEditingOrder(null);
@@ -249,17 +306,23 @@ export default function OrdersPage() {
         phoneNumber: "",
         orderStatus: "confirmed",
         creditAmount: "",
-        remainingAmount: 0
+        remainingAmount: 0,
+        hasDiscount: false,
+        discountAmount: ""
       });
     }
     setShowOrderModal(true);
   };
 
   const saveOrder = async () => {
+    if (savingOrder) return; // Prevent double submission
+    
     try {
+      setSavingOrder(true);
       const orderData = {
         ...orderForm,
-        orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+        orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0),
+        discountAmount: orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0
       };
 
       if (orderData.orderItems.length === 0) {
@@ -292,6 +355,8 @@ export default function OrdersPage() {
     } catch (error) {
       console.error("Error saving order:", error);
       alert("Error saving order");
+    } finally {
+      setSavingOrder(false);
     }
   };
 
@@ -564,6 +629,25 @@ export default function OrdersPage() {
                     </div>
                   )}
                   
+                  {/* Discount Information - Show if discount was applied */}
+                  {order.discountAmount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Banknote className="w-4 h-4 text-orange-400" />
+                      <span className="text-sm text-gray-600">
+                        <strong>Subtotal:</strong> Rs {(order.subtotal || (order.orderTotal + order.discountAmount)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {order.discountAmount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Banknote className="w-4 h-4 text-red-400" />
+                      <span className="text-sm text-red-600">
+                        <strong>Discount:</strong> - Rs {order.discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center gap-2">
                     <Banknote className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
@@ -773,21 +857,92 @@ export default function OrdersPage() {
                     <>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Paid Amount (Paid on Spot) *
+                          Amount Paid (Received) *
                         </label>
                         <input
-                          type="number"
+                          type="text"
                           value={orderForm.creditAmount}
-                          onChange={(e) => handleOrderFormChange('creditAmount', e.target.value === '' ? '' : Number(e.target.value) || '')}
+                          onChange={(e) => handleOrderFormChange('creditAmount', formatPriceInput(e.target.value))}
+                          onKeyDown={handlePriceKeyPress}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="0"
-                          min="0"
-                          step="1"
+                          placeholder="0.00"
+                          inputMode="decimal"
                           required
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Amount received from customer (remaining will be on credit)
+                        </p>
+                        
+                        {/* Credit Amount Preview */}
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-700">
+                            <div className="flex justify-between mb-1">
+                              <span>Order Total:</span>
+                              <span>Rs {(() => {
+                                const subtotal = orderForm.orderItems
+                                  .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+                                  .reduce((total, item) => {
+                                    const product = products.find(p => p._id === item.productId);
+                                    return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                                  }, 0);
+                                const discount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
+                                return Math.max(0, subtotal - discount).toFixed(2);
+                              })()}</span>
+                            </div>
+                            <div className="flex justify-between mb-1">
+                              <span>Amount Paid:</span>
+                              <span>Rs {(Number(orderForm.creditAmount) || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold text-red-600 border-t pt-1">
+                              <span>Credit Amount:</span>
+                              <span>Rs {orderForm.remainingAmount.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </>
                   )}
+
+                  {/* Discount Toggle */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Apply Discount
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleOrderFormChange('hasDiscount', !orderForm.hasDiscount)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                          orderForm.hasDiscount ? 'bg-purple-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            orderForm.hasDiscount ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Discount Amount - Only show when discount toggle is on */}
+                    {orderForm.hasDiscount && (
+                      <div className="mt-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Discount Amount *
+                        </label>
+                        <input
+                          type="text"
+                          value={orderForm.discountAmount}
+                          onChange={(e) => handleOrderFormChange('discountAmount', formatPriceInput(e.target.value))}
+                          onKeyDown={handlePriceKeyPress}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="0.00"
+                          inputMode="decimal"
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Order Items */}
                   <div>
@@ -876,18 +1031,48 @@ export default function OrdersPage() {
                             );
                           })}
                         <div className="border-t border-gray-200 pt-2 mt-2">
-                          <div className="flex justify-between font-bold">
-                            <span>Total:</span>
-                            <span>
-                              Rs {orderForm.orderItems
-                                .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
-                                .reduce((total, item) => {
-                                  const product = products.find(p => p._id === item.productId);
-                                  return product ? total + (product.salePrice * Number(item.quantity)) : total;
-                                }, 0)
-                                .toFixed(2)}
-                            </span>
-                          </div>
+                          {(() => {
+                            const subtotal = orderForm.orderItems
+                              .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+                              .reduce((total, item) => {
+                                const product = products.find(p => p._id === item.productId);
+                                return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                              }, 0);
+                            
+                            const discountAmount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
+                            const finalTotal = Math.max(0, subtotal - discountAmount);
+
+                            return (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>Subtotal:</span>
+                                  <span>Rs {subtotal.toFixed(2)}</span>
+                                </div>
+                                {orderForm.hasDiscount && discountAmount > 0 && (
+                                  <div className="flex justify-between text-red-600">
+                                    <span>Discount:</span>
+                                    <span>- Rs {discountAmount.toFixed(2)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2 mt-2">
+                                  <span>Total:</span>
+                                  <span>Rs {finalTotal.toFixed(2)}</span>
+                                </div>
+                                {orderForm.orderStatus === 'credit' && (
+                                  <div className="mt-2 pt-2 border-t border-gray-200">
+                                    <div className="flex justify-between text-sm text-green-600">
+                                      <span>Amount Paid:</span>
+                                      <span>Rs {(Number(orderForm.creditAmount) || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-red-600 font-semibold">
+                                      <span>Credit Amount:</span>
+                                      <span>Rs {orderForm.remainingAmount.toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -904,10 +1089,17 @@ export default function OrdersPage() {
                   </button>
                   <button
                     onClick={saveOrder}
-                    disabled={!orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0).length === 0}
-                    className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={savingOrder || !orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0).length === 0}
+                    className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
-                    {editingOrder ? "Update Order" : "Create Order"}
+                    {savingOrder ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {editingOrder ? "Updating..." : "Creating..."}
+                      </>
+                    ) : (
+                      editingOrder ? "Update Order" : "Create Order"
+                    )}
                   </button>
                 </div>
               </motion.div>

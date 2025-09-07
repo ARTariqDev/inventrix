@@ -276,6 +276,7 @@ export default function StatsPage() {
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'credit': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -635,6 +636,7 @@ export default function StatsPage() {
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="credit">Credit</option>
                   </select>
                 </div>
               </div>
@@ -854,6 +856,7 @@ export default function StatsPage() {
                             case 'shipped': return '#3b82f6';   // Blue
                             case 'delivered': return '#8b5cf6'; // Purple
                             case 'cancelled': return '#ef4444'; // Red
+                            case 'credit': return '#f59e0b';    // Orange
                             default: return '#6b7280';         // Gray
                           }
                         }),
@@ -863,6 +866,7 @@ export default function StatsPage() {
                             case 'shipped': return '#3b82f6';   // Blue
                             case 'delivered': return '#8b5cf6'; // Purple
                             case 'cancelled': return '#ef4444'; // Red
+                            case 'credit': return '#f59e0b';    // Orange
                             default: return '#6b7280';         // Gray
                           }
                         }),
