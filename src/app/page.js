@@ -30,7 +30,7 @@ export default function LandingPage() {
               <Package className="w-10 h-10 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 text-white" />
             </div>
           </motion.div>
-
+          {/*
           <motion.h1
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -39,8 +39,9 @@ export default function LandingPage() {
                        bg-gradient-to-r from-purple-600 via-pink-500 to-fuchsia-500 
                        bg-clip-text text-transparent animate-gradient-x"
           >
-            TwinStar
+            IMS
           </motion.h1>
+          */}
         </motion.div>
 
         <motion.h2
@@ -86,9 +87,10 @@ export default function LandingPage() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="py-4 mt-auto"
       >
+        {/*
         <p className="text-sm text-gray-500">
           @Powered By Cybitrix Systems
-        </p>
+        </p>*/}
       </motion.div>
     </motion.main>
   );

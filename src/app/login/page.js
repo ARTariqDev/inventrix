@@ -120,9 +120,11 @@ export default function LoginPage() {
         transition={{ duration: 0.5, delay: 1.5 }}
         className="py-4 mt-auto"
       >
+        {/*
         <p className="text-xs text-gray-500">
           @Powered By Cybitrix Systems
         </p>
+        */}
       </motion.div>
     </div>
   );
