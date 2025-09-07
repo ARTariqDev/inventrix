@@ -33,8 +33,7 @@ export default function Layout({ children }) {
         <div className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg z-30 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-purple-600" />
-              <span className="text-xl font-bold text-white">TwinStar</span>
+             
             </div>
           </div>
           <button
