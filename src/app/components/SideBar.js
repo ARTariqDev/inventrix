@@ -162,7 +162,7 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
         animate={isExpanded ? "expanded" : "collapsed"}
         onAnimationComplete={() => setIsAnimating(false)}
         className={`
-          fixed left-0 h-screen bg-gradient-to-b from-purple-600 via-purple-700 to-pink-600 shadow-xl z-40 flex flex-col
+          fixed left-0 h-screen bg-gradient-to-b from-purple-600 via-purple-700 to-pink-600 shadow-xl z-40 flex flex-col overflow-hidden
           ${isMobile ? 'top-16' : 'top-0'}
         `}
         style={{
