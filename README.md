@@ -1,6 +1,6 @@
 # Inventrix - Inventory Management System
 
-A modern, full-stack inventory management system built with Next.js 15, React 19, and MongoDB. Features real-time analytics, order management, and responsive design with smooth animations .
+A modern, full-stack inventory management system built with Next.js 15, React 19, and MongoDB. Features real-time analytics, order management, and responsive design with smooth animations  .
 
 ## Features
 
