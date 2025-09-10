@@ -666,7 +666,7 @@ export default function StatsPage() {
               value: stats?.overview?.totalProducts || 0,
               icon: Package,
               color: "from-purple-500 to-pink-500",
-              change: stats?.overview?.productsChange
+              subtitle: `${formatCurrency(stats?.overview?.totalInventoryValue || 0)} inventory value`
             },
             {
               title: "Total Profit",
@@ -700,6 +700,10 @@ export default function StatsPage() {
                     }`}>
                       {card.change >= 0 ? '+' : ''}{card.change.toFixed(1)}%
                     </span>
+                  </div>
+                ) : card.subtitle ? (
+                  <div className="text-xs text-gray-500 font-medium text-right">
+                    Inventory
                   </div>
                 ) : (
                   <div className="text-sm text-gray-400 font-medium">

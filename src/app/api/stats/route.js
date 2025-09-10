@@ -327,6 +327,21 @@ export async function GET(request) {
       { $group: { _id: null, total: { $sum: "$stock" } } }
     ]);
 
+    // Calculate total inventory value (cost of all stock)
+    const totalInventoryValue = await Product.aggregate([
+      { $match: { userId: userObjectId, isActive: true } }, // Don't filter by category for inventory value
+      { 
+        $group: { 
+          _id: null, 
+          totalValue: { 
+            $sum: { 
+              $multiply: ["$salePrice", "$stock"]  //changed to use sale price
+            } 
+          } 
+        } 
+      }
+    ]);
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -338,6 +353,7 @@ export async function GET(request) {
           totalProfit: currentProfit,
           profitMargin,
           totalStock: totalStock[0]?.total || 0,
+          totalInventoryValue: totalInventoryValue[0]?.totalValue || 0,
           lowStockCount: lowStockProducts.length,
           // Percentage changes
           revenueChange,

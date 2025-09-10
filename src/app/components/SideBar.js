@@ -6,6 +6,7 @@ import {
   Package, 
   ShoppingCart, 
   FileText, 
+  Users, 
   Menu, 
   X,
   LogOut
@@ -102,6 +103,11 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
       name: "Invoices",
       icon: FileText,
       href: "/invoices"
+    },
+    {
+      name: "Persons",
+      icon: Users,
+      href: "/persons"
     }
   ];
 
