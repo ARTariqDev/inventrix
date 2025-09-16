@@ -58,7 +58,8 @@ export default function StatsPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    period: "30",
+    startDate: "",
+    endDate: "",
     category: "all",
     status: "all"
   });
@@ -85,8 +86,13 @@ export default function StatsPage() {
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams(filters);
-      const response = await fetch(`/api/stats?${params}`);
+  // Only include non-empty filters
+  const params = new URLSearchParams();
+  if (filters.startDate) params.append('startDate', filters.startDate);
+  if (filters.endDate) params.append('endDate', filters.endDate);
+  if (filters.category) params.append('category', filters.category);
+  if (filters.status) params.append('status', filters.status);
+  const response = await fetch(`/api/stats?${params}`);
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
@@ -592,19 +598,26 @@ export default function StatsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Time Period
+                      Start Date
                   </label>
-                  <select
-                    value={filters.period}
-                    onChange={(e) => updateFilter('period', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="7">Last 7 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="90">Last 90 days</option>
-                    <option value="365">Last year</option>
-                  </select>
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={e => updateFilter('startDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
                 </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={e => updateFilter('endDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

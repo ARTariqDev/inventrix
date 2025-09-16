@@ -32,7 +32,9 @@ export default function Layout({ children }) {
       {isMobile && (
         <div className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg z-30 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-white">TwinStar</span>
+e            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+             
+            </div>
           </div>
           <button
             onClick={toggleMobileSidebar}

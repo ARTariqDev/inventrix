@@ -15,7 +15,8 @@ export default function OrdersPage() {
   const [filters, setFilters] = useState({
     orderTotal: { value: "", operator: "equal" },
     orderStatus: { value: "all", operator: "equal" },
-    orderDate: { value: "", operator: "equal" },
+    startDate: "",
+    endDate: "",
     receivedBy: { value: "", operator: "include" }
   });
 
@@ -140,6 +141,7 @@ export default function OrdersPage() {
 
     // Apply other filters
     Object.entries(filters).forEach(([field, filter]) => {
+      if (["startDate", "endDate"].includes(field)) return;
       if (!filter.value || (filter.value === 'all')) return;
 
       filtered = filtered.filter(order => {
@@ -172,26 +174,16 @@ export default function OrdersPage() {
               return true;
           }
         }
-
-        if (field === 'orderDate') {
-          const orderDate = new Date(order.orderDate);
-          const filterDate = new Date(filter.value);
-          
-          switch (filter.operator) {
-            case 'equal':
-              return orderDate.toDateString() === filterDate.toDateString();
-            case 'after':
-              return orderDate > filterDate;
-            case 'before':
-              return orderDate < filterDate;
-            default:
-              return true;
-          }
-        }
-
         return true;
       });
     });
+    // Date range filter
+    if (filters.startDate) {
+      filtered = filtered.filter(order => new Date(order.orderDate) >= new Date(filters.startDate));
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(order => new Date(order.orderDate) <= new Date(filters.endDate));
+    }
 
     setFilteredOrders(filtered);
   }, [orders, searchTerm, filters]);
@@ -522,28 +514,26 @@ export default function OrdersPage() {
                     </select>
                   </div>
 
-                  {/* Order Date Filter */}
+                  {/* Order Date Range Filter */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      Order Date
+                      Start Date
                     </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={filters.orderDate.operator}
-                        onChange={(e) => updateFilter('orderDate', 'operator', e.target.value)}
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                      >
-                        <option value="equal">On</option>
-                        <option value="after">After</option>
-                        <option value="before">Before</option>
-                      </select>
-                      <input
-                        type="date"
-                        value={filters.orderDate.value}
-                        onChange={(e) => updateFilter('orderDate', 'value', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg"
-                      />
-                    </div>
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg"
+                    />
+                    <label className="block text-sm font-medium text-gray-700 mt-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg"
+                    />
                   </div>
 
                   {/* Received By Filter */}
