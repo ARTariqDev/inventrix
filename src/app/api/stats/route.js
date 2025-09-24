@@ -16,14 +16,27 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "30";
     const category = searchParams.get("category") || "all";
     const status = searchParams.get("status") || "all";
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(period));
+    let endDate, startDate;
+    if (startDateParam && endDateParam) {
+      // Use provided date range
+      startDate = new Date(startDateParam);
+      endDate = new Date(endDateParam);
+      // Set endDate to end of day
+      endDate.setHours(23,59,59,999);
+    } else {
+      // Default to period
+      endDate = new Date();
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(period));
+    }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const orderFilter = { 
@@ -53,9 +66,18 @@ export async function GET(request) {
     }
 
     // Setup previous period for comparison
-    const previousStartDate = new Date(startDate);
-    const previousEndDate = new Date(startDate);
-    previousStartDate.setDate(previousStartDate.getDate() - parseInt(period));
+    // Previous period logic for custom date range
+    let previousStartDate, previousEndDate;
+    if (startDateParam && endDateParam) {
+      const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      previousEndDate = new Date(startDate);
+      previousStartDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - diffDays);
+    } else {
+      previousStartDate = new Date(startDate);
+      previousEndDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - parseInt(period));
+    }
     
     const previousOrderFilter = {
       userId: userObjectId,

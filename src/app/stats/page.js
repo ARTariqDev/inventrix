@@ -86,13 +86,13 @@ export default function StatsPage() {
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
-  // Only include non-empty filters
-  const params = new URLSearchParams();
-  if (filters.startDate) params.append('startDate', filters.startDate);
-  if (filters.endDate) params.append('endDate', filters.endDate);
-  if (filters.category) params.append('category', filters.category);
-  if (filters.status) params.append('status', filters.status);
-  const response = await fetch(`/api/stats?${params}`);
+      // Always send startDate and endDate if set
+      const params = new URLSearchParams();
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      const response = await fetch(`/api/stats?${params}`);
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
@@ -225,22 +225,28 @@ export default function StatsPage() {
 
     setLoading(true);
     setCurrentView(viewType);
-    
+
     try {
       let endpoint = '';
+      const params = new URLSearchParams();
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+
       switch (viewType) {
         case 'low-stock':
-          endpoint = '/api/products?stock=10&stockOperator=less';
+          endpoint = `/api/products?stock=10&stockOperator=less&${params}`;
           break;
         case 'top-products':
-          endpoint = '/api/stats?detail=top-products';
+          endpoint = `/api/stats?detail=top-products&${params}`;
           break;
         default:
           setCurrentView('dashboard');
           setLoading(false);
           return;
       }
-      
+
       const response = await fetch(endpoint);
       if (response.ok) {
         const data = await response.json();
