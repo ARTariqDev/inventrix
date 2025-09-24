@@ -35,6 +35,9 @@ export default function OrdersPage() {
     discountAmount: ""
   });
 
+  // Track if autofill is active
+  const [autofilled, setAutofilled] = useState(false);
+
   // No need to send userId; backend uses cookie
 
   // Input validation functions
@@ -213,6 +216,29 @@ export default function OrdersPage() {
   };
 
   const handleOrderFormChange = (field, value, index = null) => {
+    if (field === 'phoneNumber') {
+      // When phone changes, check for previous order
+      const match = orders.find(order => order.phoneNumber && order.phoneNumber === value);
+      if (match) {
+        setOrderForm(prev => ({
+          ...prev,
+          phoneNumber: value,
+          receivedBy: match.receivedBy,
+          address: match.address
+        }));
+        setAutofilled(true);
+        return;
+      } else {
+        setAutofilled(false);
+        setOrderForm(prev => ({ ...prev, phoneNumber: value }));
+        return;
+      }
+    }
+    if (field === 'clearAutofill') {
+      setOrderForm(prev => ({ ...prev, receivedBy: '', address: '' }));
+      setAutofilled(false);
+      return;
+    }
     if (field === 'orderItems' && index !== null) {
       const newOrderForm = {
         ...orderForm,
@@ -220,8 +246,6 @@ export default function OrdersPage() {
           i === index ? { ...item, [value.field]: value.value } : item
         )
       };
-      
-      // If credit status is selected, recalculate credit amount (remaining)
       if (newOrderForm.orderStatus === 'credit') {
         newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       }
@@ -243,12 +267,9 @@ export default function OrdersPage() {
       setOrderForm(newOrderForm);
     } else {
       const newOrderForm = { ...orderForm, [field]: value };
-      
-      // If status changed to credit, calculate credit amount (remaining)
       if (field === 'orderStatus' && value === 'credit') {
         newOrderForm.remainingAmount = calculateRemainingAmount(newOrderForm);
       } else if (field === 'orderStatus' && value !== 'credit') {
-        // Reset credit fields if status is not credit
         newOrderForm.creditAmount = "";
         newOrderForm.remainingAmount = 0;
       }
@@ -776,20 +797,48 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Received By */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Received By *
-                    </label>
-                    <input
-                      type="text"
-                      value={orderForm.receivedBy}
-                      onChange={(e) => handleOrderFormChange('receivedBy', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Enter recipient name"
-                      maxLength="100"
-                      required
-                    />
+
+                  {/* Name & Phone Inline */}
+                  <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Received By *
+                      </label>
+                      <input
+                        type="text"
+                        value={orderForm.receivedBy}
+                        onChange={(e) => handleOrderFormChange('receivedBy', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Enter recipient name"
+                        maxLength="100"
+                        required
+                        disabled={autofilled}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        value={orderForm.phoneNumber}
+                        onChange={(e) => handleOrderFormChange('phoneNumber', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Enter phone number"
+                        maxLength="20"
+                        required
+                      />
+                    </div>
+                    {autofilled && (
+                      <button
+                        type="button"
+                        onClick={() => handleOrderFormChange('clearAutofill')}
+                        className="mb-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors text-sm"
+                        title="Clear autofilled fields"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
 
                   {/* Address */}
@@ -804,22 +853,6 @@ export default function OrdersPage() {
                       placeholder="Enter delivery address"
                       maxLength="500"
                       rows="3"
-                      required
-                    />
-                  </div>
-
-                  {/* Phone Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      value={orderForm.phoneNumber}
-                      onChange={(e) => handleOrderFormChange('phoneNumber', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Enter phone number"
-                      maxLength="20"
                       required
                     />
                   </div>
