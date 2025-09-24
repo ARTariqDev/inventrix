@@ -86,7 +86,7 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               placeholder="••••••••"
-              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
             />
           </div>
 

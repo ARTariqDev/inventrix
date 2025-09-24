@@ -926,8 +926,10 @@ export default function OrdersPage() {
                     </>
                   )}
 
-                  {/* Discount Toggle */}
+                  {/* Order Items */}
                   <div>
+                  {/* Discount Toggle - moved below order items */}
+                  <div className="mt-6">
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-medium text-gray-700">
                         Apply Discount
@@ -966,9 +968,6 @@ export default function OrdersPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Order Items */}
-                  <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-medium text-gray-700">
                         Order Items *
