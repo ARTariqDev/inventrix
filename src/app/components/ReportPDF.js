@@ -11,9 +11,16 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     // Calculate real totals from the data
     let realTotalSales = 0;
     let realTotalPurchases = 0;
+    let ordersByStatus = {};
     
     orders.forEach(order => {
       realTotalSales += Number(order.orderTotal) || 0;
+      const status = order.orderStatus || 'unknown';
+      if (!ordersByStatus[status]) {
+        ordersByStatus[status] = { count: 0, total: 0 };
+      }
+      ordersByStatus[status].count += 1;
+      ordersByStatus[status].total += Number(order.orderTotal) || 0;
     });
     
     products.forEach(product => {
@@ -31,37 +38,49 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     
     // Helper function to add header
     const addHeader = () => {
-      doc.setFillColor(124, 58, 237); // Purple
-      doc.rect(margin, margin, contentWidth, 35, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(20);
       doc.setFont(undefined, 'bold');
-      doc.text('TwinStar Monthly Report', margin + 5, margin + 12);
+      doc.text('Monthly Report', margin, margin + 10);
       
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      doc.text(`Month: ${month}`, margin + 5, margin + 22);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin + 5, margin + 28);
+      doc.text(`Month: ${month}`, margin, margin + 18);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, margin + 24);
       
-      doc.setTextColor(0, 0, 0);
+      // Draw line under header
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(margin, margin + 28, pageWidth - margin, margin + 28);
     };
     
     // Page 1: Header and Products
     addHeader();
     
-    let yPos = margin + 45;
+    let yPos = margin + 35;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(124, 58, 237);
+    doc.setTextColor(0, 0, 0);
     doc.text('Products', margin, yPos);
     yPos += 10;
     
     // Products table header
-    doc.setFillColor(124, 58, 237);
-    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setFillColor(220, 220, 220); // Light gray for header
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPos, contentWidth, 8, 'FD');
     
-    doc.setTextColor(255, 255, 255);
+    // Draw vertical lines for columns
+    const col1 = margin + 58;
+    const col2 = margin + 98;
+    const col3 = margin + 128;
+    const col4 = margin + 163;
+    doc.line(col1, yPos, col1, yPos + 8);
+    doc.line(col2, yPos, col2, yPos + 8);
+    doc.line(col3, yPos, col3, yPos + 8);
+    doc.line(col4, yPos, col4, yPos + 8);
+    
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
     doc.text('Product', margin + 2, yPos + 5.5);
@@ -74,23 +93,30 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     // Products table body
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'normal');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    
     products.forEach((p, idx) => {
       if (yPos > pageHeight - 30) {
         doc.addPage();
         addHeader();
-        yPos = margin + 45;
+        yPos = margin + 35;
       }
       
-      if (idx % 2 === 0) {
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPos, contentWidth, 7, 'F');
-      }
+      // Draw cell with border
+      doc.rect(margin, yPos, contentWidth, 7, 'D');
+      
+      // Draw vertical lines for columns
+      doc.line(col1, yPos, col1, yPos + 7);
+      doc.line(col2, yPos, col2, yPos + 7);
+      doc.line(col3, yPos, col3, yPos + 7);
+      doc.line(col4, yPos, col4, yPos + 7);
       
       doc.setFontSize(8);
       doc.text(String(p.name || 'N/A').substring(0, 30), margin + 2, yPos + 5);
       doc.text(String(p.sku || 'N/A'), margin + 60, yPos + 5);
-      doc.text(`$${Number(p.salePrice || 0).toFixed(2)}`, margin + 100, yPos + 5);
-      doc.text(`$${Number(p.purchasePrice || 0).toFixed(2)}`, margin + 130, yPos + 5);
+      doc.text(`Rs.${Number(p.salePrice || 0).toFixed(2)}`, margin + 100, yPos + 5);
+      doc.text(`Rs.${Number(p.purchasePrice || 0).toFixed(2)}`, margin + 130, yPos + 5);
       doc.text(String(p.stock || 0), margin + 165, yPos + 5);
       yPos += 7;
     });
@@ -98,99 +124,150 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     // Page 2: Orders
     doc.addPage();
     addHeader();
-    yPos = margin + 45;
+    yPos = margin + 35;
     
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(236, 72, 153); // Pink
+    doc.setTextColor(0, 0, 0);
     doc.text('Orders', margin, yPos);
     yPos += 10;
     
     // Orders table header
-    doc.setFillColor(236, 72, 153);
-    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setFillColor(220, 220, 220); // Light gray for header
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPos, contentWidth, 8, 'FD');
     
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
+    // Draw vertical lines for columns (adjusted for phone column)
+    const orderCol1 = margin + 26;
+    const orderCol2 = margin + 48;
+    const orderCol3 = margin + 66;
+    const orderCol4 = margin + 86;
+    const orderCol5 = margin + 108;
+    const orderCol6 = margin + 128;
+    const orderCol7 = margin + 152;
+    doc.line(orderCol1, yPos, orderCol1, yPos + 8);
+    doc.line(orderCol2, yPos, orderCol2, yPos + 8);
+    doc.line(orderCol3, yPos, orderCol3, yPos + 8);
+    doc.line(orderCol4, yPos, orderCol4, yPos + 8);
+    doc.line(orderCol5, yPos, orderCol5, yPos + 8);
+    doc.line(orderCol6, yPos, orderCol6, yPos + 8);
+    doc.line(orderCol7, yPos, orderCol7, yPos + 8);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(6.5);
     doc.setFont(undefined, 'bold');
     doc.text('Order ID', margin + 2, yPos + 5.5);
-    doc.text('Date', margin + 35, yPos + 5.5);
-    doc.text('Total', margin + 70, yPos + 5.5);
-    doc.text('Discount', margin + 95, yPos + 5.5);
-    doc.text('Remaining', margin + 122, yPos + 5.5);
-    doc.text('Recipient', margin + 152, yPos + 5.5);
+    doc.text('Date', margin + 28, yPos + 5.5);
+    doc.text('Total', margin + 50, yPos + 5.5);
+    doc.text('Disc', margin + 68, yPos + 5.5);
+    doc.text('Remain', margin + 88, yPos + 5.5);
+    doc.text('Status', margin + 110, yPos + 5.5);
+    doc.text('Recipient', margin + 130, yPos + 5.5);
+    doc.text('Phone', margin + 154, yPos + 5.5);
     yPos += 8;
     
     // Orders table body
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'normal');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.2);
+    
     orders.forEach((o, idx) => {
       if (yPos > pageHeight - 30) {
         doc.addPage();
         addHeader();
-        yPos = margin + 45;
+        yPos = margin + 35;
       }
       
-      if (idx % 2 === 0) {
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPos, contentWidth, 7, 'F');
-      }
+      // Draw cell with border
+      doc.rect(margin, yPos, contentWidth, 7, 'D');
       
-      doc.setFontSize(8);
-      doc.text(String(o.orderId || o._id || 'N/A').substring(0, 12), margin + 2, yPos + 5);
-      doc.text(o.orderDate ? new Date(o.orderDate).toLocaleDateString() : 'N/A', margin + 35, yPos + 5);
-      doc.text(`$${Number(o.orderTotal || 0).toFixed(2)}`, margin + 70, yPos + 5);
-      doc.text(`$${Number(o.discountAmount || 0).toFixed(2)}`, margin + 95, yPos + 5);
-      doc.text(`$${Number(o.remainingAmount || 0).toFixed(2)}`, margin + 122, yPos + 5);
-      doc.text(String(o.receivedBy || 'N/A').substring(0, 20), margin + 152, yPos + 5);
+      // Draw vertical lines for columns
+      doc.line(orderCol1, yPos, orderCol1, yPos + 7);
+      doc.line(orderCol2, yPos, orderCol2, yPos + 7);
+      doc.line(orderCol3, yPos, orderCol3, yPos + 7);
+      doc.line(orderCol4, yPos, orderCol4, yPos + 7);
+      doc.line(orderCol5, yPos, orderCol5, yPos + 7);
+      doc.line(orderCol6, yPos, orderCol6, yPos + 7);
+      doc.line(orderCol7, yPos, orderCol7, yPos + 7);
+      
+      doc.setFontSize(6);
+      doc.text(String(o.orderId || o._id || 'N/A').substring(0, 8), margin + 2, yPos + 5);
+      doc.text(o.orderDate ? new Date(o.orderDate).toLocaleDateString() : 'N/A', margin + 28, yPos + 5);
+      doc.text(`${Number(o.orderTotal || 0).toFixed(0)}`, margin + 50, yPos + 5);
+      doc.text(`${Number(o.discountAmount || 0).toFixed(0)}`, margin + 68, yPos + 5);
+      doc.text(`${Number(o.remainingAmount || 0).toFixed(0)}`, margin + 88, yPos + 5);
+      doc.text(String(o.orderStatus || 'N/A').substring(0, 8), margin + 110, yPos + 5);
+      doc.text(String(o.receivedBy || 'N/A').substring(0, 10), margin + 130, yPos + 5);
+      doc.text(String(o.phoneNumber || 'N/A').substring(0, 12), margin + 154, yPos + 5);
       yPos += 7;
     });
     
     // Summary section
     yPos += 15;
-    if (yPos > pageHeight - 60) {
+    const numStatuses = Object.keys(ordersByStatus).length;
+    const summaryHeight = 48 + (numStatuses * 7);
+    if (yPos > pageHeight - summaryHeight - 20) {
       doc.addPage();
       addHeader();
-      yPos = margin + 45;
+      yPos = margin + 35;
     }
     
-    doc.setFillColor(249, 250, 251);
-    doc.rect(margin, yPos, contentWidth, 45, 'F');
-    doc.setDrawColor(236, 72, 153);
-    doc.setLineWidth(1);
-    doc.rect(margin, yPos, contentWidth, 45);
+    const summaryStartY = yPos;
     
     yPos += 10;
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(236, 72, 153);
+    doc.setTextColor(0, 0, 0);
     doc.text('Summary', margin + 5, yPos);
     
-    yPos += 12;
-    doc.setFontSize(12);
+    yPos += 10;
+    doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'bold');
     doc.text('Total Sales:', margin + 5, yPos);
-    doc.text(`$${realTotalSales.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    doc.text(`Rs.${realTotalSales.toFixed(2)}`, pageWidth - margin - 40, yPos);
     
-    yPos += 10;
+    yPos += 8;
     doc.text('Total Purchases:', margin + 5, yPos);
-    doc.text(`$${realTotalPurchases.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    doc.text(`Rs.${realTotalPurchases.toFixed(2)}`, pageWidth - margin - 40, yPos);
     
-    yPos += 10;
+    yPos += 8;
     doc.text('Profit/Loss:', margin + 5, yPos);
-    doc.setTextColor(realProfitLoss >= 0 ? 16 : 239, realProfitLoss >= 0 ? 185 : 68, realProfitLoss >= 0 ? 129 : 68);
-    doc.text(`$${realProfitLoss.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Rs.${realProfitLoss.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    
+    // Orders by status
+    yPos += 12;
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Orders by Status:', margin + 5, yPos);
+    
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    Object.keys(ordersByStatus).forEach(status => {
+      const statusData = ordersByStatus[status];
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      doc.text(`${statusLabel}: ${statusData.count} orders (Rs.${statusData.total.toFixed(2)})`, margin + 10, yPos);
+      yPos += 7;
+    });
+    
+    // Draw border around summary after all content is added
+    const actualSummaryHeight = yPos - summaryStartY + 5;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, summaryStartY, contentWidth, actualSummaryHeight);
     
     // Footer
-    doc.setTextColor(150, 150, 150);
+    doc.setTextColor(100, 100, 100);
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
-    doc.text('This is a digitally generated report', pageWidth / 2, pageHeight - 15, { align: 'center' });
-    doc.text('TwinStar Inventory Management System', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text('This is a digitally generated report', pageWidth / 2, pageHeight - 10, { align: 'center' });
     
     // Save/download
-    doc.save(`TwinStar_Report_${month}.pdf`);
+    doc.save(`Monthly_Report_${month}.pdf`);
   } catch (error) {
     console.error("Error generating PDF:", error);
     alert(`Failed to generate report: ${error.message}`);
