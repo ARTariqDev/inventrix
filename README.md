@@ -1778,10 +1778,7 @@ npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run ESLint
 
-# Database utilities
-node scripts/add-sample-data.js    # Add sample data to database
-node scripts/debug-database.js     # Debug database connections
-node scripts/check-order-dates.js  # Validate order date formats
+
 ```
 
 
