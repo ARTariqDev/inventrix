@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { 
@@ -10,13 +11,19 @@ import {
   Menu, 
   X,
   LogOut
+    , Download
 } from "lucide-react";
 
-export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, onToggle }) {
-  const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(false);
+import ReportDropdown from "./ReportDropdown";
+import { generateReportPDF } from "./ReportPDF";
+
+
+// Add products, orders, totals to props
+export default function Sidebar({ products = [], orders = [], totals = {}, onExpandChange, isExpanded: parentExpanded, onToggle }) {
   const [isMobile, setIsMobile] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(parentExpanded ?? false);
+  const router = useRouter();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -57,6 +64,10 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
     
     // Reset animation lock after animation completes
     setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  const handleDownloadReport = async (month) => {
+    await generateReportPDF({ month, products, orders, totals });
   };
 
   const handleLogout = async () => {
@@ -285,6 +296,28 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
               </motion.li>
             ))}
           </ul>
+          {/* Download Report Dropdown below nav items */}
+          <div className="mt-2">
+            {isExpanded ? (
+              <ReportDropdown onDownload={handleDownloadReport} />
+            ) : (
+              <motion.button
+                onClick={() => setIsExpanded(true)}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group relative"
+                whileHover={{ x: 5 }}
+                whileTap={{ scale: 0.98 }}
+                title="Download Report"
+              >
+                <motion.div
+                  className="relative z-10 w-6 h-6 flex items-center justify-center"
+                  whileHover={{ rotate: [0, -10, 10, 0] }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <Download size={20} />
+                </motion.div>
+              </motion.button>
+            )}
+          </div>
         </nav>
 
         {/* Footer Section */}
@@ -309,7 +342,6 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
                   <LogOut size={18} />
                   <span className="font-medium">Logout</span>
                 </motion.button>
-                
                 {/* Version */}
                 <div className="text-center">
                   <p className="text-xs text-white/60">

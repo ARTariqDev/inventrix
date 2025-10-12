@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 export async function POST(request) {
   try {
+    console.log("MONGODB_URI in route.js:", process.env.MONGODB_URI);
     await connectDB();
 
     const { email, password } = await request.json();

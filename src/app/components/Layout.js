@@ -6,6 +6,43 @@ import Sidebar from "./SideBar";
 export default function Layout({ children }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [totals, setTotals] = useState({ profitLoss: 0, totalSales: 0, totalPurchases: 0 });
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const prodRes = await fetch("/api/products");
+        const prodData = await prodRes.json();
+        setProducts(prodData.products || []);
+
+        const orderRes = await fetch("/api/orders");
+        const orderData = await orderRes.json();
+        setOrders(orderData.orders || []);
+
+        // Calculate totals from actual orders
+        let totalSales = 0, totalPurchases = 0;
+        (orderData.orders || []).forEach(order => {
+          totalSales += order.orderTotal || 0;
+        });
+        
+        // Calculate total purchases from products in stock
+        (prodData.products || []).forEach(p => {
+          totalPurchases += (p.purchasePrice || 0) * (p.stock || 0);
+        });
+        
+        setTotals({
+          profitLoss: totalSales - totalPurchases,
+          totalSales,
+          totalPurchases
+        });
+      } catch (err) {
+        // Handle error
+      }
+    }
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -49,6 +86,9 @@ e            <div className="w-8 h-8 bg-white rounded-lg flex items-center justi
         onExpandChange={setSidebarExpanded} 
         isExpanded={sidebarExpanded}
         onToggle={toggleMobileSidebar}
+        products={products}
+        orders={orders}
+        totals={totals}
       />
       
       <main 

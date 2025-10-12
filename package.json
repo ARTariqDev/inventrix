@@ -1,32 +1,33 @@
 {
     "name": "twinstar",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "chart.js": "^4.5.0",
-    "dotenv": "^17.2.1",
-    "framer-motion": "^12.23.12",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.2",
-    "lucide-react": "^0.541.0",
-    "mongoose": "^8.18.0",
-    "next": "15.1.0",
-    "react": "^19.0.0",
-    "react-chartjs-2": "^5.3.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "eslint": "^9",
-    "eslint-config-next": "15.1.0",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1"
-  }
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --turbopack",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "bcryptjs": "^3.0.2",
+        "chart.js": "^4.5.0",
+        "dotenv": "^17.2.1",
+        "framer-motion": "^12.23.12",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^3.0.3",
+        "jspdf-autotable": "^5.0.2",
+        "lucide-react": "^0.541.0",
+        "mongoose": "^8.18.0",
+        "next": "15.1.0",
+        "react": "^19.0.0",
+        "react-chartjs-2": "^5.3.0",
+        "react-dom": "^19.0.0"
+    },
+    "devDependencies": {
+        "@eslint/eslintrc": "^3",
+        "eslint": "^9",
+        "eslint-config-next": "15.1.0",
+        "postcss": "^8",
+        "tailwindcss": "^3.4.1"
+    }
 }

@@ -330,6 +330,9 @@ const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
 
 export async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI is not defined in environment variables. Check your .env file and dotenv config.");
+  }
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       dbName: process.env.MONGODB_DB || "myapp",
