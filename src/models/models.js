@@ -324,9 +324,73 @@ OrderSchema.pre("save", async function (next) {
   }
 });
 
+// Monthly Statistics Snapshot Schema
+const MonthlySnapshotSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userName: { type: String, required: true, trim: true },
+    month: { type: Number, required: true, min: 1, max: 12 }, // 1-12
+    year: { type: Number, required: true },
+    periodStart: { type: Date, required: true },
+    periodEnd: { type: Date, required: true },
+    
+    // Overview Statistics
+    overview: {
+      totalOrders: { type: Number, default: 0 },
+      totalRevenue: { type: Number, default: 0 },
+      totalProducts: { type: Number, default: 0 },
+      avgOrderValue: { type: Number, default: 0 },
+      totalProfit: { type: Number, default: 0 },
+      profitMargin: { type: Number, default: 0 },
+      totalStock: { type: Number, default: 0 },
+      totalInventoryValue: { type: Number, default: 0 },
+      lowStockCount: { type: Number, default: 0 },
+    },
+    
+    // Top Products (top 10)
+    topProducts: [{
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      productName: { type: String },
+      totalQuantity: { type: Number },
+      totalRevenue: { type: Number }
+    }],
+    
+    // Category Statistics
+    categoryStats: [{
+      category: { type: String },
+      count: { type: Number },
+      totalValue: { type: Number },
+      avgPrice: { type: Number }
+    }],
+    
+    // Status Distribution
+    statusDistribution: [{
+      status: { type: String },
+      count: { type: Number },
+      revenue: { type: Number }
+    }],
+    
+    // Daily Revenue for the month
+    dailyRevenue: [{
+      date: { type: String },
+      revenue: { type: Number },
+      orders: { type: Number }
+    }],
+    
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+// Compound index to ensure one snapshot per user per month/year
+MonthlySnapshotSchema.index({ userId: 1, year: 1, month: 1 }, { unique: true });
+MonthlySnapshotSchema.index({ userId: 1, periodStart: 1 });
+MonthlySnapshotSchema.index({ userId: 1, isActive: 1 });
+
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
 const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
+const MonthlySnapshot = mongoose.models.MonthlySnapshot || mongoose.model("MonthlySnapshot", MonthlySnapshotSchema);
 
 export async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
@@ -346,4 +410,4 @@ export async function connectDB() {
 
 
 
-export { User, Product, Order, Counter };
+export { User, Product, Order, Counter, MonthlySnapshot };

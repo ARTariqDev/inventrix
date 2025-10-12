@@ -10,7 +10,7 @@ export async function generateReportPDF({ month, products, orders, totals }) {
 
     // Calculate real totals from the data
     let realTotalSales = 0;
-    let realTotalPurchases = 0;
+    let realTotalProfit = 0;
     let ordersByStatus = {};
     
     orders.forEach(order => {
@@ -21,13 +21,18 @@ export async function generateReportPDF({ month, products, orders, totals }) {
       }
       ordersByStatus[status].count += 1;
       ordersByStatus[status].total += Number(order.orderTotal) || 0;
+      
+      // Calculate profit from order items (same formula as dashboard)
+      if (order.orderItems && Array.isArray(order.orderItems)) {
+        order.orderItems.forEach(item => {
+          const salePrice = Number(item.salePrice) || 0;
+          const purchasePrice = Number(item.purchasePrice) || 0;
+          const quantity = Number(item.quantity) || 0;
+          const itemProfit = (salePrice - purchasePrice) * quantity;
+          realTotalProfit += itemProfit;
+        });
+      }
     });
-    
-    products.forEach(product => {
-      realTotalPurchases += (Number(product.purchasePrice) || 0) * (Number(product.stock) || 0);
-    });
-    
-    const realProfitLoss = realTotalSales - realTotalPurchases;
 
     // Create PDF
     const doc = new jsPDF('p', 'mm', 'a4');
@@ -138,33 +143,30 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     doc.setLineWidth(0.3);
     doc.rect(margin, yPos, contentWidth, 8, 'FD');
     
-    // Draw vertical lines for columns (adjusted for phone column)
+    // Draw vertical lines for columns (Order ID, Recipient, Date, Status, Discount, Total, Remaining)
     const orderCol1 = margin + 26;
-    const orderCol2 = margin + 48;
-    const orderCol3 = margin + 66;
-    const orderCol4 = margin + 86;
-    const orderCol5 = margin + 108;
-    const orderCol6 = margin + 128;
-    const orderCol7 = margin + 152;
+    const orderCol2 = margin + 58;
+    const orderCol3 = margin + 82;
+    const orderCol4 = margin + 110;
+    const orderCol5 = margin + 136;
+    const orderCol6 = margin + 162;
     doc.line(orderCol1, yPos, orderCol1, yPos + 8);
     doc.line(orderCol2, yPos, orderCol2, yPos + 8);
     doc.line(orderCol3, yPos, orderCol3, yPos + 8);
     doc.line(orderCol4, yPos, orderCol4, yPos + 8);
     doc.line(orderCol5, yPos, orderCol5, yPos + 8);
     doc.line(orderCol6, yPos, orderCol6, yPos + 8);
-    doc.line(orderCol7, yPos, orderCol7, yPos + 8);
     
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(6.5);
+    doc.setFontSize(7);
     doc.setFont(undefined, 'bold');
     doc.text('Order ID', margin + 2, yPos + 5.5);
-    doc.text('Date', margin + 28, yPos + 5.5);
-    doc.text('Total', margin + 50, yPos + 5.5);
-    doc.text('Disc', margin + 68, yPos + 5.5);
-    doc.text('Remain', margin + 88, yPos + 5.5);
-    doc.text('Status', margin + 110, yPos + 5.5);
-    doc.text('Recipient', margin + 130, yPos + 5.5);
-    doc.text('Phone', margin + 154, yPos + 5.5);
+    doc.text('Recipient', margin + 28, yPos + 5.5);
+    doc.text('Date', margin + 60, yPos + 5.5);
+    doc.text('Status', margin + 84, yPos + 5.5);
+    doc.text('Discount', margin + 112, yPos + 5.5);
+    doc.text('Total', margin + 138, yPos + 5.5);
+    doc.text('Remaining', margin + 164, yPos + 5.5);
     yPos += 8;
     
     // Orders table body
@@ -190,24 +192,22 @@ export async function generateReportPDF({ month, products, orders, totals }) {
       doc.line(orderCol4, yPos, orderCol4, yPos + 7);
       doc.line(orderCol5, yPos, orderCol5, yPos + 7);
       doc.line(orderCol6, yPos, orderCol6, yPos + 7);
-      doc.line(orderCol7, yPos, orderCol7, yPos + 7);
       
-      doc.setFontSize(6);
+      doc.setFontSize(6.5);
       doc.text(String(o.orderId || o._id || 'N/A').substring(0, 8), margin + 2, yPos + 5);
-      doc.text(o.orderDate ? new Date(o.orderDate).toLocaleDateString() : 'N/A', margin + 28, yPos + 5);
-      doc.text(`${Number(o.orderTotal || 0).toFixed(0)}`, margin + 50, yPos + 5);
-      doc.text(`${Number(o.discountAmount || 0).toFixed(0)}`, margin + 68, yPos + 5);
-      doc.text(`${Number(o.remainingAmount || 0).toFixed(0)}`, margin + 88, yPos + 5);
-      doc.text(String(o.orderStatus || 'N/A').substring(0, 8), margin + 110, yPos + 5);
-      doc.text(String(o.receivedBy || 'N/A').substring(0, 10), margin + 130, yPos + 5);
-      doc.text(String(o.phoneNumber || 'N/A').substring(0, 12), margin + 154, yPos + 5);
+      doc.text(String(o.receivedBy || 'N/A').substring(0, 14), margin + 28, yPos + 5);
+      doc.text(o.orderDate ? new Date(o.orderDate).toLocaleDateString() : 'N/A', margin + 60, yPos + 5);
+      doc.text(String(o.orderStatus || 'N/A').substring(0, 10), margin + 84, yPos + 5);
+      doc.text(`${Number(o.discountAmount || 0).toFixed(0)}`, margin + 112, yPos + 5);
+      doc.text(`${Number(o.orderTotal || 0).toFixed(0)}`, margin + 138, yPos + 5);
+      doc.text(`${Number(o.remainingAmount || 0).toFixed(0)}`, margin + 164, yPos + 5);
       yPos += 7;
     });
     
     // Summary section
     yPos += 15;
     const numStatuses = Object.keys(ordersByStatus).length;
-    const summaryHeight = 48 + (numStatuses * 7);
+    const summaryHeight = 40 + (numStatuses * 7);
     if (yPos > pageHeight - summaryHeight - 20) {
       doc.addPage();
       addHeader();
@@ -226,17 +226,12 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'bold');
-    doc.text('Total Sales:', margin + 5, yPos);
+    doc.text('Total Revenue:', margin + 5, yPos);
     doc.text(`Rs.${realTotalSales.toFixed(2)}`, pageWidth - margin - 40, yPos);
     
     yPos += 8;
-    doc.text('Total Purchases:', margin + 5, yPos);
-    doc.text(`Rs.${realTotalPurchases.toFixed(2)}`, pageWidth - margin - 40, yPos);
-    
-    yPos += 8;
-    doc.text('Profit/Loss:', margin + 5, yPos);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Rs.${realProfitLoss.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    doc.text('Total Profit:', margin + 5, yPos);
+    doc.text(`Rs.${realTotalProfit.toFixed(2)}`, pageWidth - margin - 40, yPos);
     
     // Orders by status
     yPos += 12;

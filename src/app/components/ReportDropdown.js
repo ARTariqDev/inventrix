@@ -20,12 +20,17 @@ const months = [
 export default function ReportDropdown({ onDownload }) {
   const [open, setOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(false);
+
+  // Generate years from 2020 to current year
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2019 }, (_, i) => 2020 + i);
 
   const handleDownload = async () => {
     if (!selectedMonth) return;
     setLoading(true);
-    await onDownload(selectedMonth);
+    await onDownload(selectedMonth, selectedYear);
     setLoading(false);
     setOpen(false);
   };
@@ -49,6 +54,17 @@ export default function ReportDropdown({ onDownload }) {
             exit={{ opacity: 0, y: -10 }}
             className="absolute left-0 mt-2 w-56 bg-gradient-to-br from-purple-700 via-purple-800 to-pink-700 border border-purple-400/30 rounded-xl shadow-lg z-50 p-4"
           >
+            <label className="block text-white/80 mb-2">Select Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-purple-900/50 text-white border border-purple-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all mb-3"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+
             <label className="block text-white/80 mb-2">Select Month</label>
             <select
               value={selectedMonth}

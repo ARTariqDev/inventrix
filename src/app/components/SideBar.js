@@ -18,8 +18,7 @@ import ReportDropdown from "./ReportDropdown";
 import { generateReportPDF } from "./ReportPDF";
 
 
-// Add products, orders, totals to props
-export default function Sidebar({ products = [], orders = [], totals = {}, onExpandChange, isExpanded: parentExpanded, onToggle }) {
+export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, onToggle }) {
   const [isMobile, setIsMobile] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(parentExpanded ?? false);
@@ -66,8 +65,35 @@ export default function Sidebar({ products = [], orders = [], totals = {}, onExp
     setTimeout(() => setIsAnimating(false), 300);
   };
 
-  const handleDownloadReport = async (month) => {
-    await generateReportPDF({ month, products, orders, totals });
+  const handleDownloadReport = async (month, year) => {
+    try {
+      const selectedYear = year || new Date().getFullYear();
+      
+      // Fetch data for the specific month
+      const response = await fetch(`/api/report?month=${month}&year=${selectedYear}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch report data');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate report');
+      }
+      
+      // Generate PDF with the fetched data
+      await generateReportPDF({ 
+        month: data.month, 
+        products: data.products, 
+        orders: data.orders, 
+        totals: data.totals 
+      });
+      
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert(`Failed to generate report: ${error.message}`);
+    }
   };
 
   const handleLogout = async () => {

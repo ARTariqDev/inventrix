@@ -16,9 +16,8 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get("period") || "30";
+    const period = searchParams.get("period");
     const category = searchParams.get("category") || "all";
     const status = searchParams.get("status") || "all";
     const startDateParam = searchParams.get("startDate");
@@ -31,11 +30,17 @@ export async function GET(request) {
       endDate = new Date(endDateParam);
       // Set endDate to end of day
       endDate.setHours(23,59,59,999);
-    } else {
-      // Default to period
+    } else if (period) {
+      // Use period if specified
       endDate = new Date();
       startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(period));
+    } else {
+      // Default to current month (1st to today)
+      const today = new Date();
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+      endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
@@ -73,10 +78,16 @@ export async function GET(request) {
       previousEndDate = new Date(startDate);
       previousStartDate = new Date(startDate);
       previousStartDate.setDate(previousStartDate.getDate() - diffDays);
-    } else {
+    } else if (period) {
       previousStartDate = new Date(startDate);
       previousEndDate = new Date(startDate);
       previousStartDate.setDate(previousStartDate.getDate() - parseInt(period));
+    } else {
+      // Default: compare with previous month period
+      const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      previousEndDate = new Date(startDate);
+      previousStartDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - diffDays);
     }
     
     const previousOrderFilter = {

@@ -8,7 +8,6 @@ import {
   Package, 
   ShoppingCart, 
   AlertTriangle,
-  Calendar,
   Filter,
   ChevronDown,
   ChevronLeft,
@@ -57,9 +56,21 @@ export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Set default dates to past month (30 days ago to today)
+  const getDefaultDates = () => {
+    const today = new Date();
+    const pastMonth = new Date();
+    pastMonth.setDate(pastMonth.getDate() - 30);
+    
+    return {
+      startDate: pastMonth.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    };
+  };
+  
   const [filters, setFilters] = useState({
-    startDate: "",
-    endDate: "",
+    ...getDefaultDates(),
     category: "all",
     status: "all"
   });
@@ -579,7 +590,7 @@ export default function StatsPage() {
             </p>
           </div>
 
-          {/* Filters */}
+          {/* Filters and Actions */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
