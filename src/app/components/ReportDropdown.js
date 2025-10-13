@@ -52,24 +52,24 @@ export default function ReportDropdown({ onDownload }) {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute left-0 mt-2 w-56 bg-gradient-to-br from-purple-700 via-purple-800 to-pink-700 border border-purple-400/30 rounded-xl shadow-lg z-50 p-4"
+            className="absolute left-3 mt-2 w-48 bg-gradient-to-br from-purple-700 via-purple-800 to-pink-700 border border-purple-400/30 rounded-xl shadow-lg z-50 p-3"
           >
-            <label className="block text-white/80 mb-2">Select Year</label>
+            <label className="block text-white/80 text-sm mb-1.5">Select Year</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-purple-900/50 text-white border border-purple-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all mb-3"
+              className="w-full px-2 py-1.5 text-sm rounded-lg bg-purple-900/50 text-white border border-purple-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all mb-2"
             >
               {years.map((year) => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
 
-            <label className="block text-white/80 mb-2">Select Month</label>
+            <label className="block text-white/80 text-sm mb-1.5">Select Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-purple-900/50 text-white border border-purple-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all mb-4"
+              className="w-full px-2 py-1.5 text-sm rounded-lg bg-purple-900/50 text-white border border-purple-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all mb-3"
             >
               <option value="">Choose month</option>
               {months.map((m) => (
@@ -79,7 +79,7 @@ export default function ReportDropdown({ onDownload }) {
             <button
               onClick={handleDownload}
               disabled={!selectedMonth || loading}
-              className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-white font-semibold transition-all disabled:opacity-50"
+              className="w-full px-3 py-1.5 text-sm bg-pink-600 hover:bg-pink-700 rounded-lg text-white font-semibold transition-all disabled:opacity-50"
             >
               {loading ? "Generating..." : "Download PDF"}
             </button>

@@ -256,7 +256,7 @@ export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, on
         )}
 
         {/* Navigation Menu */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
             {menuItems.map((item, index) => (
               <motion.li
