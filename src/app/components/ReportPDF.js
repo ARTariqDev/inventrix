@@ -11,10 +11,12 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     // Calculate real totals from the data
     let realTotalSales = 0;
     let realTotalProfit = 0;
+    let totalRemainingAmount = 0;
     let ordersByStatus = {};
     
     orders.forEach(order => {
       realTotalSales += Number(order.orderTotal) || 0;
+      totalRemainingAmount += Number(order.remainingAmount) || 0;
       const status = order.orderStatus || 'unknown';
       if (!ordersByStatus[status]) {
         ordersByStatus[status] = { count: 0, total: 0 };
@@ -101,8 +103,13 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.2);
     
+    // Calculate totals for products
+    let totalSalePrice = 0;
+    let totalPurchasePrice = 0;
+    let totalStock = 0;
+    
     products.forEach((p, idx) => {
-      if (yPos > pageHeight - 30) {
+      if (yPos > pageHeight - 40) { // Extra space for totals row
         doc.addPage();
         addHeader();
         yPos = margin + 35;
@@ -124,7 +131,33 @@ export async function generateReportPDF({ month, products, orders, totals }) {
       doc.text(`Rs.${Number(p.purchasePrice || 0).toFixed(2)}`, margin + 130, yPos + 5);
       doc.text(String(p.stock || 0), margin + 165, yPos + 5);
       yPos += 7;
+      
+      // Accumulate totals
+      totalSalePrice += Number(p.salePrice || 0);
+      totalPurchasePrice += Number(p.purchasePrice || 0);
+      totalStock += Number(p.stock || 0);
     });
+    
+    // Add totals row
+    doc.setFillColor(240, 240, 240); // Light gray for totals
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPos, contentWidth, 8, 'FD');
+    
+    // Draw vertical lines for columns
+    doc.line(col1, yPos, col1, yPos + 8);
+    doc.line(col2, yPos, col2, yPos + 8);
+    doc.line(col3, yPos, col3, yPos + 8);
+    doc.line(col4, yPos, col4, yPos + 8);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('TOTAL', margin + 2, yPos + 5.5);
+    doc.text(`Rs.${totalSalePrice.toFixed(2)}`, margin + 100, yPos + 5.5);
+    doc.text(`Rs.${totalPurchasePrice.toFixed(2)}`, margin + 130, yPos + 5.5);
+    doc.text(String(totalStock), margin + 165, yPos + 5.5);
+    yPos += 8;
     
     // Page 2: Orders
     doc.addPage();
@@ -198,9 +231,9 @@ export async function generateReportPDF({ month, products, orders, totals }) {
       doc.text(String(o.receivedBy || 'N/A').substring(0, 14), margin + 28, yPos + 5);
       doc.text(o.orderDate ? new Date(o.orderDate).toLocaleDateString() : 'N/A', margin + 60, yPos + 5);
       doc.text(String(o.orderStatus || 'N/A').substring(0, 10), margin + 84, yPos + 5);
-      doc.text(`${Number(o.discountAmount || 0).toFixed(0)}`, margin + 112, yPos + 5);
-      doc.text(`${Number(o.orderTotal || 0).toFixed(0)}`, margin + 138, yPos + 5);
-      doc.text(`${Number(o.remainingAmount || 0).toFixed(0)}`, margin + 164, yPos + 5);
+      doc.text(`Rs.${Number(o.discountAmount || 0).toFixed(0)}`, margin + 112, yPos + 5);
+      doc.text(`Rs.${Number(o.orderTotal || 0).toFixed(0)}`, margin + 138, yPos + 5);
+      doc.text(`Rs.${Number(o.remainingAmount || 0).toFixed(0)}`, margin + 164, yPos + 5);
       yPos += 7;
     });
     
@@ -232,6 +265,13 @@ export async function generateReportPDF({ month, products, orders, totals }) {
     yPos += 8;
     doc.text('Total Profit:', margin + 5, yPos);
     doc.text(`Rs.${realTotalProfit.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    
+    // Total Remaining Amount (only if there's any remaining amount)
+    if (totalRemainingAmount > 0) {
+      yPos += 8;
+      doc.text('Total Remaining (Credit):', margin + 5, yPos);
+      doc.text(`Rs.${totalRemainingAmount.toFixed(2)}`, pageWidth - margin - 40, yPos);
+    }
     
     // Orders by status
     yPos += 12;

@@ -797,25 +797,12 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="space-y-6">
-
-                  {/* Name & Phone Inline */}
-                  <div className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Received By *
-                      </label>
-                      <input
-                        type="text"
-                        value={orderForm.receivedBy}
-                        onChange={(e) => handleOrderFormChange('receivedBy', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Enter recipient name"
-                        maxLength="100"
-                        required
-                        disabled={autofilled}
-                      />
-                    </div>
-                    <div className="flex-1">
+                  {/* Section 1: Customer Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Customer Information</h3>
+                    
+                    {/* Phone Number */}
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Phone Number *
                       </label>
@@ -828,159 +815,71 @@ export default function OrdersPage() {
                         maxLength="20"
                         required
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Previous order details will auto-fill if phone exists
+                      </p>
                     </div>
-                    {autofilled && (
-                      <button
-                        type="button"
-                        onClick={() => handleOrderFormChange('clearAutofill')}
-                        className="mb-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors text-sm"
-                        title="Clear autofilled fields"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
 
-                  {/* Address */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Delivery Address *
-                    </label>
-                    <textarea
-                      value={orderForm.address}
-                      onChange={(e) => handleOrderFormChange('address', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Enter delivery address"
-                      maxLength="500"
-                      rows="3"
-                      required
-                    />
-                  </div>
-
-                  {/* Order Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Order Status
-                    </label>
-                    <select
-                      value={orderForm.orderStatus}
-                      onChange={(e) => handleOrderFormChange('orderStatus', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="confirmed">Confirmed</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="credit">Credit</option>
-                    </select>
-                  </div>
-
-                  {/* Credit Amount - Only show when status is credit */}
-                  {orderForm.orderStatus === 'credit' && (
-                    <>
+                    {/* Name & Address Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Amount Paid (Received) *
+                          Received By *
                         </label>
-                        <input
-                          type="text"
-                          value={orderForm.creditAmount}
-                          onChange={(e) => handleOrderFormChange('creditAmount', formatPriceInput(e.target.value))}
-                          onKeyDown={handlePriceKeyPress}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="0.00"
-                          inputMode="decimal"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Amount received from customer (remaining will be on credit)
-                        </p>
-                        
-                        {/* Credit Amount Preview */}
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-700">
-                            <div className="flex justify-between mb-1">
-                              <span>Order Total:</span>
-                              <span>Rs {(() => {
-                                const subtotal = orderForm.orderItems
-                                  .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
-                                  .reduce((total, item) => {
-                                    const product = products.find(p => p._id === item.productId);
-                                    return product ? total + (product.salePrice * Number(item.quantity)) : total;
-                                  }, 0);
-                                const discount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
-                                return Math.max(0, subtotal - discount).toFixed(2);
-                              })()}</span>
-                            </div>
-                            <div className="flex justify-between mb-1">
-                              <span>Amount Paid:</span>
-                              <span>Rs {(Number(orderForm.creditAmount) || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between font-semibold text-red-600 border-t pt-1">
-                              <span>Credit Amount:</span>
-                              <span>Rs {orderForm.remainingAmount.toFixed(2)}</span>
-                            </div>
-                          </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={orderForm.receivedBy}
+                            onChange={(e) => handleOrderFormChange('receivedBy', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Enter recipient name"
+                            maxLength="100"
+                            required
+                            disabled={autofilled}
+                          />
+                          {autofilled && (
+                            <button
+                              type="button"
+                              onClick={() => handleOrderFormChange('clearAutofill')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200 transition-colors"
+                              title="Clear autofilled fields"
+                            >
+                              Clear
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </>
-                  )}
 
-                  {/* Order Items */}
-                  <div>
-                  {/* Discount Toggle - moved below order items */}
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Apply Discount
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleOrderFormChange('hasDiscount', !orderForm.hasDiscount)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-                          orderForm.hasDiscount ? 'bg-purple-600' : 'bg-gray-200'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            orderForm.hasDiscount ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Discount Amount - Only show when discount toggle is on */}
-                    {orderForm.hasDiscount && (
-                      <div className="mt-3">
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Discount Amount *
+                          Delivery Address *
                         </label>
                         <input
                           type="text"
-                          value={orderForm.discountAmount}
-                          onChange={(e) => handleOrderFormChange('discountAmount', formatPriceInput(e.target.value))}
-                          onKeyDown={handlePriceKeyPress}
+                          value={orderForm.address}
+                          onChange={(e) => handleOrderFormChange('address', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="0.00"
-                          inputMode="decimal"
+                          placeholder="Enter delivery address"
+                          maxLength="500"
                           required
+                          disabled={autofilled}
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Order Items *
-                      </label>
+
+                  {/* Section 2: Order Items */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Order Items *</h3>
                       <button
                         onClick={addOrderItem}
-                        className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
                       >
                         <Plus size={16} />
                         Add Item
                       </button>
                     </div>
-
                     <div className="space-y-3">
                       {orderForm.orderItems.map((item, index) => (
                         <div key={index} className="flex gap-3 items-start p-4 border border-gray-200 rounded-lg">
@@ -1031,73 +930,204 @@ export default function OrdersPage() {
                       ))}
                     </div>
 
-                    {/* Order Preview */}
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-gray-900 mb-2">Order Preview:</h4>
-                      <div className="space-y-1">
-                        {orderForm.orderItems
-                          .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
-                          .map((item, idx) => {
-                            const product = products.find(p => p._id === item.productId);
-                            if (!product) return null;
-                            const itemTotal = product.salePrice * Number(item.quantity);
-                            return (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-gray-700">
-                                  {product.name} × {item.quantity}
-                                </span>
-                                <span className="font-medium">
-                                  Rs {itemTotal.toFixed(2)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        <div className="border-t border-gray-200 pt-2 mt-2">
-                          {(() => {
-                            const subtotal = orderForm.orderItems
-                              .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
-                              .reduce((total, item) => {
-                                const product = products.find(p => p._id === item.productId);
-                                return product ? total + (product.salePrice * Number(item.quantity)) : total;
-                              }, 0);
-                            
-                            const discountAmount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
-                            const finalTotal = Math.max(0, subtotal - discountAmount);
+                  </div>
 
-                            return (
-                              <>
-                                <div className="flex justify-between">
-                                  <span>Subtotal:</span>
-                                  <span>Rs {subtotal.toFixed(2)}</span>
+                  {/* Section 3: Discount (Only show if items exist) */}
+                  {orderForm.orderItems.some(item => item.productId && item.quantity && Number(item.quantity) > 0) && (
+                    <div className="space-y-4">
+                      <div className="border-b pb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">Discount (Optional)</h3>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Apply Discount
+                          </label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Toggle to apply a discount to this order
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOrderFormChange('hasDiscount', !orderForm.hasDiscount)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                            orderForm.hasDiscount ? 'bg-purple-600' : 'bg-gray-200'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              orderForm.hasDiscount ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {orderForm.hasDiscount && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Discount Amount *
+                          </label>
+                          <input
+                            type="text"
+                            value={orderForm.discountAmount}
+                            onChange={(e) => handleOrderFormChange('discountAmount', formatPriceInput(e.target.value))}
+                            onKeyDown={handlePriceKeyPress}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="0.00"
+                            inputMode="decimal"
+                            required
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Enter the discount amount to deduct from subtotal
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Section 4: Order Summary */}
+                  {orderForm.orderItems.some(item => item.productId && item.quantity && Number(item.quantity) > 0) && (
+                    <div className="space-y-4">
+                      <div className="border-b pb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
+                      </div>
+                      
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                        <div className="space-y-2">
+                          {orderForm.orderItems
+                            .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+                            .map((item, idx) => {
+                              const product = products.find(p => p._id === item.productId);
+                              if (!product) return null;
+                              const itemTotal = product.salePrice * Number(item.quantity);
+                              return (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-gray-700">
+                                    {product.name} × {item.quantity}
+                                  </span>
+                                  <span className="font-medium">
+                                    Rs {itemTotal.toFixed(2)}
+                                  </span>
                                 </div>
-                                {orderForm.hasDiscount && discountAmount > 0 && (
-                                  <div className="flex justify-between text-red-600">
-                                    <span>Discount:</span>
-                                    <span>- Rs {discountAmount.toFixed(2)}</span>
+                              );
+                            })}
+                          
+                          <div className="border-t border-purple-200 pt-2 mt-2 space-y-1">
+                            {(() => {
+                              const subtotal = orderForm.orderItems
+                                .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+                                .reduce((total, item) => {
+                                  const product = products.find(p => p._id === item.productId);
+                                  return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                                }, 0);
+                              
+                              const discountAmount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
+                              const finalTotal = Math.max(0, subtotal - discountAmount);
+
+                              return (
+                                <>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-700">Subtotal:</span>
+                                    <span className="font-medium">Rs {subtotal.toFixed(2)}</span>
                                   </div>
-                                )}
-                                <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2 mt-2">
-                                  <span>Total:</span>
-                                  <span>Rs {finalTotal.toFixed(2)}</span>
-                                </div>
-                                {orderForm.orderStatus === 'credit' && (
-                                  <div className="mt-2 pt-2 border-t border-gray-200">
-                                    <div className="flex justify-between text-sm text-green-600">
-                                      <span>Amount Paid:</span>
-                                      <span>Rs {(Number(orderForm.creditAmount) || 0).toFixed(2)}</span>
+                                  {orderForm.hasDiscount && discountAmount > 0 && (
+                                    <div className="flex justify-between text-sm text-red-600">
+                                      <span>Discount:</span>
+                                      <span className="font-medium">- Rs {discountAmount.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm text-red-600 font-semibold">
-                                      <span>Credit Amount:</span>
-                                      <span>Rs {orderForm.remainingAmount.toFixed(2)}</span>
-                                    </div>
+                                  )}
+                                  <div className="flex justify-between font-bold text-lg border-t border-purple-300 pt-2 mt-2">
+                                    <span>Total:</span>
+                                    <span className="text-purple-700">Rs {finalTotal.toFixed(2)}</span>
                                   </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* Section 5: Order Status & Payment */}
+                  <div className="space-y-4">
+                    <div className="border-b pb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">Order Status & Payment</h3>
+                    </div>
+                    
+                    {/* Order Status */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order Status *
+                      </label>
+                      <select
+                        value={orderForm.orderStatus}
+                        onChange={(e) => handleOrderFormChange('orderStatus', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="confirmed">Confirmed</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="credit">Credit (Partial Payment)</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Select &quot;Credit&quot; if customer pays partially
+                      </p>
+                    </div>
+
+                    {/* Credit Payment - Only show when status is credit */}
+                    {orderForm.orderStatus === 'credit' && (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Amount Paid (Received) *
+                          </label>
+                          <input
+                            type="text"
+                            value={orderForm.creditAmount}
+                            onChange={(e) => handleOrderFormChange('creditAmount', formatPriceInput(e.target.value))}
+                            onKeyDown={handlePriceKeyPress}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="0.00"
+                            inputMode="decimal"
+                            required
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Enter the amount customer paid now (remaining will be on credit)
+                          </p>
+                        </div>
+                        
+                        {/* Credit Summary */}
+                        <div className="p-3 bg-white rounded-lg border border-orange-300">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-2">Credit Summary:</h4>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-700">Order Total:</span>
+                              <span className="font-medium">Rs {(() => {
+                                const subtotal = orderForm.orderItems
+                                  .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
+                                  .reduce((total, item) => {
+                                    const product = products.find(p => p._id === item.productId);
+                                    return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                                  }, 0);
+                                const discount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
+                                return Math.max(0, subtotal - discount).toFixed(2);
+                              })()}</span>
+                            </div>
+                            <div className="flex justify-between text-green-600">
+                              <span>Amount Paid:</span>
+                              <span className="font-medium">Rs {(Number(orderForm.creditAmount) || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold text-red-600 border-t border-gray-200 pt-1 mt-1">
+                              <span>Credit Amount (Remaining):</span>
+                              <span>Rs {orderForm.remainingAmount.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1111,7 +1141,15 @@ export default function OrdersPage() {
                   </button>
                   <button
                     onClick={saveOrder}
-                    disabled={savingOrder || !orderForm.receivedBy || !orderForm.address || !orderForm.phoneNumber || orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0).length === 0}
+                    disabled={
+                      savingOrder || 
+                      !orderForm.receivedBy || 
+                      !orderForm.address || 
+                      !orderForm.phoneNumber || 
+                      orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0).length === 0 ||
+                      (orderForm.hasDiscount && (!orderForm.discountAmount || Number(orderForm.discountAmount) <= 0)) ||
+                      (orderForm.orderStatus === 'credit' && (!orderForm.creditAmount || Number(orderForm.creditAmount) < 0))
+                    }
                     className="flex-1 px-4 py-2 text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
                     {savingOrder ? (

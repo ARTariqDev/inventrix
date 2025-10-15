@@ -74,6 +74,11 @@ export default function StatsPage() {
     category: "all",
     status: "all"
   });
+  const [tempFilters, setTempFilters] = useState({
+    ...getDefaultDates(),
+    category: "all",
+    status: "all"
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'recent-orders', 'low-stock', 'top-products'
   const [expandedData, setExpandedData] = useState(null);
@@ -223,8 +228,23 @@ export default function StatsPage() {
     }
   };
 
-  const updateFilter = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const updateTempFilter = (key, value) => {
+    setTempFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    setFilters(tempFilters);
+  };
+
+  const clearFilters = () => {
+    const defaultDates = getDefaultDates();
+    const clearedFilters = {
+      ...defaultDates,
+      category: "all",
+      status: "all"
+    };
+    setTempFilters(clearedFilters);
+    setFilters(clearedFilters);
   };
 
   const handleViewMore = async (viewType) => {
@@ -612,15 +632,15 @@ export default function StatsPage() {
               exit={{ height: 0, opacity: 0 }}
               className="bg-white rounded-2xl shadow-lg p-6 overflow-hidden"
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                       Start Date
                   </label>
                     <input
                       type="date"
-                      value={filters.startDate}
-                      onChange={e => updateFilter('startDate', e.target.value)}
+                      value={tempFilters.startDate}
+                      onChange={e => updateTempFilter('startDate', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                 </div>
@@ -630,8 +650,8 @@ export default function StatsPage() {
                     </label>
                     <input
                       type="date"
-                      value={filters.endDate}
-                      onChange={e => updateFilter('endDate', e.target.value)}
+                      value={tempFilters.endDate}
+                      onChange={e => updateTempFilter('endDate', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -641,8 +661,8 @@ export default function StatsPage() {
                     Category
                   </label>
                   <select
-                    value={filters.category}
-                    onChange={(e) => updateFilter('category', e.target.value)}
+                    value={tempFilters.category}
+                    onChange={(e) => updateTempFilter('category', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="all">All Categories</option>
@@ -657,8 +677,8 @@ export default function StatsPage() {
                     Order Status
                   </label>
                   <select
-                    value={filters.status}
-                    onChange={(e) => updateFilter('status', e.target.value)}
+                    value={tempFilters.status}
+                    onChange={(e) => updateTempFilter('status', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="all">All Statuses</option>
@@ -669,6 +689,22 @@ export default function StatsPage() {
                     <option value="credit">Credit</option>
                   </select>
                 </div>
+              </div>
+              
+              {/* Filter Action Buttons */}
+              <div className="flex items-center gap-3 justify-end pt-4 border-t border-gray-200">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                >
+                  Clear Filters
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="px-4 py-2 text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg transition-all font-medium shadow-md"
+                >
+                  Apply Filters
+                </button>
               </div>
             </motion.div>
           )}
