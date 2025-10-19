@@ -57,15 +57,27 @@ export default function StatsPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Set default dates to past month (30 days ago to today)
+  // Set default dates to current month (first day to last day)
   const getDefaultDates = () => {
     const today = new Date();
-    const pastMonth = new Date();
-    pastMonth.setDate(pastMonth.getDate() - 30);
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    // Create dates at noon to avoid timezone issues
+    const firstDay = new Date(year, month, 1, 12, 0, 0);
+    const lastDay = new Date(year, month + 1, 0, 12, 0, 0);
+    
+    // Format as YYYY-MM-DD using local time
+    const formatDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
     
     return {
-      startDate: pastMonth.toISOString().split('T')[0],
-      endDate: today.toISOString().split('T')[0]
+      startDate: formatDate(firstDay),
+      endDate: formatDate(lastDay)
     };
   };
   
