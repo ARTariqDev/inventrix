@@ -32,7 +32,7 @@ import {
   ArcElement,
   Filler,
 } from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import Layout from "../components/Layout";
 import Button from "../components/Button";
 import { useRouter } from "next/navigation";
@@ -94,6 +94,11 @@ export default function StatsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'recent-orders', 'low-stock', 'top-products'
   const [expandedData, setExpandedData] = useState(null);
+  const [chartPeriod, setChartPeriod] = useState('4'); // '1', '2', '3', '4', 'custom'
+  const [customChartDates, setCustomChartDates] = useState({
+    startDate: '',
+    endDate: ''
+  });
 
   // Fetch user information
   const fetchUser = useCallback(async () => {
@@ -323,6 +328,38 @@ export default function StatsPage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const formatMonth = (monthString) => {
+    const [year, month] = monthString.split('-');
+    const date = new Date(year, parseInt(month) - 1);
+    return date.toLocaleDateString([], {
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getFilteredMonthlyData = () => {
+    if (!stats?.monthlyProfitSpending) return [];
+    
+    const data = stats.monthlyProfitSpending;
+    
+    if (chartPeriod === 'custom') {
+      if (!customChartDates.startDate || !customChartDates.endDate) {
+        return data.slice(-4); // Default to last 4 months if custom dates not set
+      }
+      
+      const start = new Date(customChartDates.startDate);
+      const end = new Date(customChartDates.endDate);
+      
+      return data.filter(item => {
+        const itemDate = new Date(item.year, item.monthNum - 1);
+        return itemDate >= start && itemDate <= end;
+      });
+    }
+    
+    const monthsToShow = parseInt(chartPeriod);
+    return data.slice(-monthsToShow);
   };
 
   const getStatusColor = (status) => {
@@ -744,7 +781,8 @@ export default function StatsPage() {
               value: stats?.overview?.totalProducts || 0,
               icon: Package,
               color: "from-purple-500 to-pink-500",
-              subtitle: `${formatCurrency(stats?.overview?.totalInventoryValue || 0)} inventory value`
+              subtitle: `${formatCurrency(stats?.overview?.totalInventoryValue || 0)} sale value`,
+              additionalInfo: `${formatCurrency(stats?.overview?.purchaseValuation || 0)} purchase value`
             },
             {
               title: "Total Profit",
@@ -800,47 +838,93 @@ export default function StatsPage() {
                   {card.subtitle}
                 </p>
               )}
+              {card.additionalInfo && (
+                <p className="text-gray-500 text-xs mt-0.5">
+                  {card.additionalInfo}
+                </p>
+              )}
             </motion.div>
           ))}
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Revenue Chart */}
+          {/* Monthly Profit & Spending Chart */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="bg-white rounded-2xl shadow-lg p-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Monthly Profit & Spending</h3>
+                  <p className="text-sm text-gray-600">Profit and cost trends over time</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Daily Revenue</h3>
-                <p className="text-sm text-gray-600">Revenue trends over time</p>
+              
+              {/* Period Selector */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={chartPeriod}
+                  onChange={(e) => setChartPeriod(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="1">Last Month</option>
+                  <option value="2">Last 2 Months</option>
+                  <option value="3">Last 3 Months</option>
+                  <option value="4">Last 4 Months</option>
+                  <option value="custom">Custom Range</option>
+                </select>
               </div>
             </div>
 
-            <div className="h-64">
-              {stats?.dailyRevenue && stats.dailyRevenue.length > 0 ? (
-                <Line
+            {/* Custom Date Range Inputs */}
+            {chartPeriod === 'custom' && (
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Start Month</label>
+                  <input
+                    type="month"
+                    value={customChartDates.startDate}
+                    onChange={(e) => setCustomChartDates(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">End Month</label>
+                  <input
+                    type="month"
+                    value={customChartDates.endDate}
+                    onChange={(e) => setCustomChartDates(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="h-80">
+              {stats?.monthlyProfitSpending && getFilteredMonthlyData().length > 0 ? (
+                <Bar
                   data={{
-                    labels: stats.dailyRevenue.slice(-14).map(day => formatDate(day.date)),
+                    labels: getFilteredMonthlyData().map(item => formatMonth(item.month)),
                     datasets: [
                       {
-                        label: 'Revenue',
-                        data: stats.dailyRevenue.slice(-14).map(day => day.revenue),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#3b82f6',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
+                        label: 'Profit',
+                        data: getFilteredMonthlyData().map(item => item.profit),
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                      },
+                      {
+                        label: 'Spending',
+                        data: getFilteredMonthlyData().map(item => item.spent),
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1,
                       }
                     ]
                   }}
@@ -849,7 +933,17 @@ export default function StatsPage() {
                     maintainAspectRatio: false,
                     plugins: {
                       legend: {
-                        display: false,
+                        display: true,
+                        position: 'top',
+                        labels: {
+                          usePointStyle: true,
+                          pointStyle: 'rect',
+                          padding: 15,
+                          font: {
+                            size: 12
+                          },
+                          color: '#374151'
+                        }
                       },
                       tooltip: {
                         backgroundColor: 'rgba(17, 24, 39, 0.9)',
@@ -858,16 +952,20 @@ export default function StatsPage() {
                         borderColor: '#3b82f6',
                         borderWidth: 1,
                         cornerRadius: 8,
-                        displayColors: false,
+                        displayColors: true,
                         callbacks: {
                           label: function(context) {
-                            return `Revenue: ${formatCurrency(context.parsed.y)}`;
+                            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
                           }
                         }
+                      },
+                      datalabels: {
+                        display: false
                       }
                     },
                     scales: {
                       x: {
+                        stacked: false,
                         grid: {
                           display: false,
                         },
@@ -879,9 +977,11 @@ export default function StatsPage() {
                         }
                       },
                       y: {
+                        stacked: false,
                         grid: {
                           color: 'rgba(209, 213, 219, 0.3)',
                         },
+                        grace: '15%',
                         ticks: {
                           color: '#6b7280',
                           font: {
@@ -892,6 +992,57 @@ export default function StatsPage() {
                           }
                         }
                       }
+                    },
+                    animation: {
+                      onComplete: function() {
+                        const ctx = this.ctx;
+                        const chart = this;
+                        
+                        ctx.font = '11px sans-serif';
+                        ctx.textAlign = 'center';
+                        
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                          const meta = chart.getDatasetMeta(datasetIndex);
+                          
+                          meta.data.forEach((bar, index) => {
+                            const value = dataset.data[index];
+                            
+                            const formattedValue = new Intl.NumberFormat('en-PK', {
+                              style: 'currency',
+                              currency: 'PKR',
+                              notation: 'compact',
+                              maximumFractionDigits: 1
+                            }).format(value);
+                            
+                            // Color based on value
+                            if (value === 0) {
+                              ctx.fillStyle = '#9ca3af'; // Gray for zero
+                            } else if (value < 0) {
+                              ctx.fillStyle = '#ef4444'; // Red for negative
+                            } else {
+                              ctx.fillStyle = '#374151'; // Dark gray for positive
+                            }
+                            
+                            // Position label based on value
+                            let yPosition;
+                            if (value === 0) {
+                              // For zero values, position at the bottom of chart area
+                              ctx.textBaseline = 'bottom';
+                              yPosition = chart.scales.y.bottom - 5;
+                            } else if (value < 0) {
+                              // For negative values, position below the bar (which is below x-axis)
+                              ctx.textBaseline = 'top';
+                              yPosition = bar.y + 5;
+                            } else {
+                              // For positive values, position above the bar
+                              ctx.textBaseline = 'bottom';
+                              yPosition = bar.y - 5;
+                            }
+                            
+                            ctx.fillText(formattedValue, bar.x, yPosition);
+                          });
+                        });
+                      }
                     }
                   }}
                 />
@@ -899,7 +1050,7 @@ export default function StatsPage() {
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
                     <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No revenue data available</p>
+                    <p className="text-gray-500">No profit/spending data available</p>
                   </div>
                 </div>
               )}

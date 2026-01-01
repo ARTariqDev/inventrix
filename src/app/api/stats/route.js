@@ -370,10 +370,109 @@ export async function GET(request) {
             $sum: { 
               $multiply: ["$salePrice", "$stock"]  //changed to use sale price
             } 
-          } 
+          },
+          purchaseValue: {
+            $sum: {
+              $multiply: ["$purchasePrice", "$stock"]
+            }
+          }
         } 
       }
     ]);
+
+    // Calculate monthly profit and spending for last 12 months
+    const monthlyProfitSpending = await Order.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          isActive: true,
+          orderDate: {
+            $gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
+          }
+        }
+      },
+      { $unwind: "$orderItems" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "orderItems.productId",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      },
+      { $unwind: "$productInfo" },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$orderDate" },
+            month: { $month: "$orderDate" }
+          },
+          totalProfit: {
+            $sum: {
+              $multiply: [
+                { $subtract: ["$productInfo.salePrice", "$productInfo.purchasePrice"] },
+                "$orderItems.quantity"
+              ]
+            }
+          },
+          totalSpent: {
+            $sum: {
+              $multiply: ["$productInfo.purchasePrice", "$orderItems.quantity"]
+            }
+          },
+          totalRevenue: {
+            $sum: {
+              $multiply: ["$productInfo.salePrice", "$orderItems.quantity"]
+            }
+          }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Fill in missing months with zero values
+    const fillMissingMonths = (data) => {
+      const now = new Date();
+      const months = [];
+      
+      // Generate last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        
+        // Find if we have data for this month
+        const existing = data.find(item => 
+          item._id.year === year && item._id.month === month
+        );
+        
+        if (existing) {
+          months.push(existing);
+        } else {
+          // Add month with zero values
+          months.push({
+            _id: { year, month },
+            totalProfit: 0,
+            totalSpent: 0,
+            totalRevenue: 0
+          });
+        }
+      }
+      
+      return months;
+    };
+
+    const completeMonthlyData = fillMissingMonths(monthlyProfitSpending);
+
+    // Format monthly profit/spending data
+    const monthlyProfitSpendingFormatted = completeMonthlyData.map(item => ({
+      month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
+      year: item._id.year,
+      monthNum: item._id.month,
+      profit: item.totalProfit,
+      spent: item.totalSpent,
+      revenue: item.totalRevenue
+    }));
 
     return NextResponse.json({
       success: true,
@@ -387,6 +486,7 @@ export async function GET(request) {
           profitMargin,
           totalStock: totalStock[0]?.total || 0,
           totalInventoryValue: totalInventoryValue[0]?.totalValue || 0,
+          purchaseValuation: totalInventoryValue[0]?.purchaseValue || 0,
           lowStockCount: lowStockProducts.length,
           // Percentage changes
           revenueChange,
@@ -400,6 +500,7 @@ export async function GET(request) {
         topProducts,
         categoryStats,
         dailyRevenue: dailyRevenueFormatted,
+        monthlyProfitSpending: monthlyProfitSpendingFormatted,
         statusDistribution,
         monthlyTrends: monthlyTrendsFormatted,
         filters: {
