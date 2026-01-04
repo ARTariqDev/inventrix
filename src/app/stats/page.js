@@ -349,12 +349,17 @@ export default function StatsPage() {
         return data.slice(-4); // Default to last 4 months if custom dates not set
       }
       
-      const start = new Date(customChartDates.startDate);
-      const end = new Date(customChartDates.endDate);
+      // Parse YYYY-MM format to get year and month
+      const [startYear, startMonth] = customChartDates.startDate.split('-').map(Number);
+      const [endYear, endMonth] = customChartDates.endDate.split('-').map(Number);
       
       return data.filter(item => {
-        const itemDate = new Date(item.year, item.monthNum - 1);
-        return itemDate >= start && itemDate <= end;
+        // Convert item's year and month to a comparable number (YYYYMM)
+        const itemYearMonth = item.year * 100 + item.monthNum;
+        const startYearMonth = startYear * 100 + startMonth;
+        const endYearMonth = endYear * 100 + endMonth;
+        
+        return itemYearMonth >= startYearMonth && itemYearMonth <= endYearMonth;
       });
     }
     
