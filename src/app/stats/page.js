@@ -925,6 +925,13 @@ export default function StatsPage() {
                         borderWidth: 1,
                       },
                       {
+                        label: 'Revenue',
+                        data: getFilteredMonthlyData().map(item => item.revenue),
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                      },
+                      {
                         label: 'Spending',
                         data: getFilteredMonthlyData().map(item => item.spent),
                         backgroundColor: 'rgba(239, 68, 68, 0.8)',

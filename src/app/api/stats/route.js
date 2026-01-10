@@ -380,14 +380,25 @@ export async function GET(request) {
       }
     ]);
 
-    // Calculate monthly profit and spending for last 12 months
+    // Calculate monthly profit and spending
+    // Use filter dates if provided, otherwise last 12 months
+    let monthlyDataStartDate;
+    if (startDateParam && endDateParam) {
+      // When custom dates are set, go back 12 months from the start date for comparison
+      monthlyDataStartDate = new Date(startDate);
+      monthlyDataStartDate.setMonth(monthlyDataStartDate.getMonth() - 11);
+    } else {
+      // Default to last 12 months
+      monthlyDataStartDate = new Date(new Date().setMonth(new Date().getMonth() - 11));
+    }
+
     const monthlyProfitSpending = await Order.aggregate([
       {
         $match: {
           userId: userObjectId,
           isActive: true,
           orderDate: {
-            $gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
+            $gte: monthlyDataStartDate
           }
         }
       },
@@ -405,7 +416,8 @@ export async function GET(request) {
         $group: {
           _id: {
             year: { $year: "$orderDate" },
-            month: { $month: "$orderDate" }
+            month: { $month: "$orderDate" },
+            orderId: "$_id"
           },
           totalProfit: {
             $sum: {
@@ -420,11 +432,18 @@ export async function GET(request) {
               $multiply: ["$productInfo.purchasePrice", "$orderItems.quantity"]
             }
           },
-          totalRevenue: {
-            $sum: {
-              $multiply: ["$productInfo.salePrice", "$orderItems.quantity"]
-            }
-          }
+          orderTotal: { $first: "$orderTotal" }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: "$_id.year",
+            month: "$_id.month"
+          },
+          totalProfit: { $sum: "$totalProfit" },
+          totalSpent: { $sum: "$totalSpent" },
+          totalRevenue: { $sum: "$orderTotal" }
         }
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } }
