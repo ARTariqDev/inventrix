@@ -88,7 +88,7 @@ export async function POST(request) {
     let calculatedTotal = 0;
     
     for (const item of orderItems) {
-      const product = await Product.findById(item.productId).select('name salePrice stock isActive');
+      const product = await Product.findById(item.productId).select('name salePrice purchasePrice stock isActive');
       
       if (!product) {
         return NextResponse.json(
@@ -118,6 +118,7 @@ export async function POST(request) {
         productId: item.productId,
         productName: product.name,
         productPrice: product.salePrice,
+        purchasePrice: product.purchasePrice,
         quantity: item.quantity,
         itemTotal: itemTotal
       });
@@ -227,7 +228,7 @@ export async function PUT(request) {
       let calculatedTotal = 0;
       
       for (const item of orderItems) {
-        const product = await Product.findById(item.productId).select('name salePrice stock isActive');
+        const product = await Product.findById(item.productId).select('name salePrice purchasePrice stock isActive');
         
         if (!product) {
           return NextResponse.json(
@@ -257,6 +258,7 @@ export async function PUT(request) {
           productId: item.productId,
           productName: product.name,
           productPrice: product.salePrice,
+          purchasePrice: product.purchasePrice,
           quantity: item.quantity,
           itemTotal: itemTotal
         });
