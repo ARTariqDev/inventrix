@@ -213,6 +213,9 @@ export async function PUT(request) {
       );
     }
 
+    // Check if this is a status-only update (no order items modification)
+    const isStatusOnlyUpdate = !orderItems && (orderStatus || creditAmount !== undefined || remainingAmount !== undefined);
+
     // If updating order items, restore previous stock and validate new items
     if (orderItems) {
       // Restore stock from previous order

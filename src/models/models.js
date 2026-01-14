@@ -325,6 +325,26 @@ OrderSchema.pre("save", async function (next) {
   }
 });
 
+// Stock History Schema - tracks stock additions/changes for spending calculation
+const StockHistorySchema = new mongoose.Schema(
+  {
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    previousStock: { type: Number, required: true, default: 0 },
+    newStock: { type: Number, required: true },
+    stockAdded: { type: Number, required: true }, // Only positive values (additions)
+    purchasePrice: { type: Number, required: true }, // Purchase price at time of addition
+    totalCost: { type: Number, required: true }, // stockAdded * purchasePrice
+    changeType: { type: String, enum: ["create", "update"], required: true },
+    changeDate: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+StockHistorySchema.index({ userId: 1, changeDate: 1 });
+StockHistorySchema.index({ productId: 1 });
+StockHistorySchema.index({ changeDate: 1 });
+
 // Monthly Statistics Snapshot Schema
 const MonthlySnapshotSchema = new mongoose.Schema(
   {
@@ -391,6 +411,7 @@ MonthlySnapshotSchema.index({ userId: 1, isActive: 1 });
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
 const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
+const StockHistory = mongoose.models.StockHistory || mongoose.model("StockHistory", StockHistorySchema);
 const MonthlySnapshot = mongoose.models.MonthlySnapshot || mongoose.model("MonthlySnapshot", MonthlySnapshotSchema);
 
 export async function connectDB() {
@@ -411,4 +432,4 @@ export async function connectDB() {
 
 
 
-export { User, Product, Order, Counter, MonthlySnapshot };
+export { User, Product, Order, Counter, StockHistory, MonthlySnapshot };

@@ -332,22 +332,47 @@ export default function OrdersPage() {
     
     try {
       setSavingOrder(true);
-      const orderData = {
-        ...orderForm,
-        orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0),
-        discountAmount: orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0
-      };
+      
+      // Check if editing an order with deleted products
+      const hasDeletedProducts = editingOrder && editingOrder.orderItems && 
+        editingOrder.orderItems.some(item => 
+          !item.productId || (typeof item.productId === 'object' && item.productId === null)
+        );
+      
+      let orderData;
+      
+      if (hasDeletedProducts && editingOrder) {
+        // Only send status-related updates for orders with deleted products
+        orderData = {
+          orderId: editingOrder._id,
+          receivedBy: orderForm.receivedBy,
+          address: orderForm.address,
+          phoneNumber: orderForm.phoneNumber,
+          orderStatus: orderForm.orderStatus,
+          creditAmount: orderForm.creditAmount,
+          remainingAmount: orderForm.remainingAmount,
+          discountAmount: orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0
+          // Note: orderItems is intentionally omitted to skip product validation
+        };
+      } else {
+        orderData = {
+          ...orderForm,
+          orderItems: orderForm.orderItems.filter(item => item.productId && item.quantity && Number(item.quantity) > 0),
+          discountAmount: orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0
+        };
 
-      if (orderData.orderItems.length === 0) {
-        alert("Please add at least one product to the order");
-        return;
+        if (orderData.orderItems.length === 0) {
+          alert("Please add at least one product to the order");
+          return;
+        }
+
+        if (editingOrder) {
+          orderData.orderId = editingOrder._id;
+        }
       }
 
       const url = "/api/orders";
       const method = editingOrder ? "PUT" : "POST";
-      if (editingOrder) {
-        orderData.orderId = editingOrder._id;
-      }
 
       const response = await fetch(url, {
         method,
@@ -795,6 +820,37 @@ export default function OrdersPage() {
                     <X size={24} />
                   </button>
                 </div>
+
+                {/* Deleted Products Warning */}
+                {editingOrder && editingOrder.orderItems && (() => {
+                  const deletedProducts = editingOrder.orderItems.filter(item => 
+                    !item.productId || (typeof item.productId === 'object' && item.productId === null)
+                  );
+                  if (deletedProducts.length > 0) {
+                    return (
+                      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <span className="text-amber-600 mt-0.5">⚠️</span>
+                          <div className="text-sm">
+                            <p className="font-medium text-amber-800">This order contains deleted products</p>
+                            <p className="text-amber-600 text-xs mt-1">
+                              {deletedProducts.map((item, idx) => (
+                                <span key={idx}>
+                                  {item.productName || 'Unknown Product'} (deleted)
+                                  {idx < deletedProducts.length - 1 ? ', ' : ''}
+                                </span>
+                              ))}
+                            </p>
+                            <p className="text-amber-600 text-xs mt-1">
+                              You can still update the order status, but cannot modify order items.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 <div className="space-y-6">
                   {/* Section 1: Customer Information */}

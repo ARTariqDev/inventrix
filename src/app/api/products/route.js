@@ -1,4 +1,4 @@
-import { connectDB, Product, User } from "@/models/models";
+import { connectDB, Product, User, StockHistory } from "@/models/models";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -217,6 +217,22 @@ export async function POST(request) {
 
     const savedProduct = await product.save();
 
+    // Log stock history for new product creation
+    if (savedProduct.stock > 0) {
+      const stockHistory = new StockHistory({
+        productId: savedProduct._id,
+        userId: user._id,
+        previousStock: 0,
+        newStock: savedProduct.stock,
+        stockAdded: savedProduct.stock,
+        purchasePrice: savedProduct.purchasePrice,
+        totalCost: savedProduct.stock * savedProduct.purchasePrice,
+        changeType: "create",
+        changeDate: new Date(),
+      });
+      await stockHistory.save();
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -304,6 +320,11 @@ export async function PUT(request) {
       );
     }
 
+    // Calculate stock difference for stock history
+    const previousStock = existingProduct.stock;
+    const newStock = Number(stock);
+    const stockAdded = newStock - previousStock;
+
     // Update product
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
@@ -318,6 +339,22 @@ export async function PUT(request) {
       },
       { new: true, runValidators: true }
     );
+
+    // Log stock history if stock was increased
+    if (stockAdded > 0) {
+      const stockHistory = new StockHistory({
+        productId: updatedProduct._id,
+        userId: existingProduct.userId,
+        previousStock: previousStock,
+        newStock: newStock,
+        stockAdded: stockAdded,
+        purchasePrice: Number(purchasePrice), // Use current purchase price
+        totalCost: stockAdded * Number(purchasePrice),
+        changeType: "update",
+        changeDate: new Date(),
+      });
+      await stockHistory.save();
+    }
 
     return NextResponse.json({
       success: true,

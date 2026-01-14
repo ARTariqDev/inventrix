@@ -378,7 +378,7 @@ export default function PersonsPage() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-xl"
+                className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
@@ -398,8 +398,8 @@ export default function PersonsPage() {
                 </div>
 
                 {/* Modal Content */}
-                <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
-                  <div className="p-6">
+                <div className="p-6">
+                  <div>
                     {/* Customer Summary */}
                     <div className="bg-purple-50 rounded-xl p-6 mb-6">
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -494,7 +494,6 @@ export default function PersonsPage() {
                       ))}
                     </div>
                   </div>
-                </div>
               </motion.div>
             </motion.div>
           )}

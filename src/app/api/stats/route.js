@@ -1,4 +1,4 @@
-import { connectDB, Order, Product } from "@/models/models";
+import { connectDB, Order, Product, StockHistory } from "@/models/models";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
@@ -93,7 +93,7 @@ export async function GET(request) {
     const previousOrderFilter = {
       userId: userObjectId,
       isActive: true,
-      orderDate: { $gte: previousStartDate, $lt: previousEndDate }
+      orderDate: { $gte: previousStartDate, $lte: previousEndDate }
     };
 
     if (status !== "all") {
@@ -173,8 +173,8 @@ export async function GET(request) {
           $group: {
             _id: "$category",
             count: { $sum: 1 },
-            totalValue: { $sum: { $multiply: ["$price", "$stock"] } },
-            avgPrice: { $avg: "$price" }
+            totalValue: { $sum: { $multiply: ["$salePrice", "$stock"] } },
+            avgPrice: { $avg: "$salePrice" }
           }
         },
         { $sort: { count: -1 } }
@@ -216,10 +216,14 @@ export async function GET(request) {
             userId: userObjectId,
             isActive: true,
             orderDate: {
-              $gte: new Date(new Date().setMonth(new Date().getMonth() - 11))
-            }
+              $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1)
+            },
+            ...(status !== "all" && { orderStatus: status })
           }
         },
+        ...(category !== "all" ? [
+          { $match: { "orderItems.productId": { $in: allProducts.filter(p => p.category === category).map(p => p._id) } } }
+        ] : []),
         {
           $group: {
             _id: {
@@ -233,7 +237,7 @@ export async function GET(request) {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
       ]),
 
-      // Total profit calculation
+      // Total profit calculation using historical order prices (with fallback to product lookup)
       Order.aggregate([
         { $match: orderFilter },
         { $unwind: "$orderItems" },
@@ -245,27 +249,36 @@ export async function GET(request) {
             as: "productInfo"
           }
         },
-        { $unwind: "$productInfo" },
         {
-          $group: {
-            _id: "$_id",
-            totalCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ["$orderItems.purchasePrice", "$productInfo.purchasePrice"] },
-                  "$orderItems.quantity"
-                ]
-              }
-            },
-            orderTotal: { $first: "$orderTotal" }
+          $addFields: {
+            "orderItems.effectivePurchasePrice": {
+              $cond: [
+                { $gt: ["$orderItems.purchasePrice", 0] },
+                "$orderItems.purchasePrice",
+                { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+              ]
+            }
           }
         },
         {
           $group: {
             _id: null,
-            totalProfit: { $sum: { $subtract: ["$orderTotal", "$totalCost"] } },
-            totalCost: { $sum: "$totalCost" },
-            totalRevenue: { $sum: "$orderTotal" }
+            totalCost: {
+              $sum: {
+                $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
+              }
+            },
+            totalRevenue: {
+              $sum: "$orderItems.itemTotal"
+            }
+          }
+        },
+        {
+          $project: {
+            _id: null,
+            totalCost: 1,
+            totalRevenue: 1,
+            totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
           }
         }
       ]),
@@ -278,7 +291,7 @@ export async function GET(request) {
         { $group: { _id: null, total: { $sum: "$orderTotal" } } }
       ]),
 
-      // Previous period profit calculation
+      // Previous period profit calculation using historical order prices (with fallback to product lookup)
       Order.aggregate([
         { $match: previousOrderFilter },
         { $unwind: "$orderItems" },
@@ -290,41 +303,62 @@ export async function GET(request) {
             as: "productInfo"
           }
         },
-        { $unwind: "$productInfo" },
         {
-          $group: {
-            _id: "$_id",
-            totalCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ["$orderItems.purchasePrice", "$productInfo.purchasePrice"] },
-                  "$orderItems.quantity"
-                ]
-              }
-            },
-            orderTotal: { $first: "$orderTotal" }
+          $addFields: {
+            "orderItems.effectivePurchasePrice": {
+              $cond: [
+                { $gt: ["$orderItems.purchasePrice", 0] },
+                "$orderItems.purchasePrice",
+                { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+              ]
+            }
           }
         },
         {
           $group: {
             _id: null,
-            totalProfit: { $sum: { $subtract: ["$orderTotal", "$totalCost"] } }
+            totalCost: {
+              $sum: {
+                $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
+              }
+            },
+            totalRevenue: {
+              $sum: "$orderItems.itemTotal"
+            }
+          }
+        },
+        {
+          $project: {
+            _id: null,
+            totalCost: 1,
+            totalRevenue: 1,
+            totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
           }
         }
       ])
     ]);
 
-    console.log("🔍 Stats API Results:");
+    console.log("\n" + "=".repeat(80));
+    console.log("🔍 STATS API RESULTS - DETAILED BREAKDOWN");
+    console.log("=".repeat(80));
+    
+    console.log("\n📊 BASIC STATS:");
     console.log("- Total Orders:", totalOrders);
-    console.log("- Total Revenue result:", totalRevenue);
-    console.log("- Total Revenue value:", totalRevenue[0]?.total || 0);
-    console.log("- Profit Data:", JSON.stringify(profitData, null, 2));
-    console.log("- Total Profit:", profitData[0]?.totalProfit || 0);
-    console.log("- Total Cost:", profitData[0]?.totalCost || 0);
-    console.log("- Profit Data Revenue:", profitData[0]?.totalRevenue || 0);
+    console.log("- Total Revenue (from orderTotal):", totalRevenue[0]?.total || 0);
     console.log("- Daily Revenue entries:", dailyRevenue.length);
-    console.log("- Status Distribution entries:", statusDistribution.length);
     console.log("- Status Distribution:", statusDistribution);
+    
+    console.log("\n💰 PROFIT CALCULATION BREAKDOWN:");
+    console.log("- Total Revenue (from itemTotal):", profitData[0]?.totalRevenue || 0);
+    console.log("- Total Cost (purchase prices):", profitData[0]?.totalCost || 0);
+    console.log("- Total Profit (Revenue - Cost):", profitData[0]?.totalProfit || 0);
+    console.log(`- Calculation: ${profitData[0]?.totalRevenue || 0} - ${profitData[0]?.totalCost || 0} = ${profitData[0]?.totalProfit || 0}`);
+    
+    console.log("\n📈 PREVIOUS PERIOD COMPARISON:");
+    console.log("- Previous Orders:", previousOrders);
+    console.log("- Previous Revenue:", previousRevenue[0]?.total || 0);
+    console.log("- Previous Profit:", previousProfitData[0]?.totalProfit || 0);
+    console.log("- Previous Cost:", previousProfitData[0]?.totalCost || 0);
 
     // Format daily revenue data
     const dailyRevenueFormatted = dailyRevenue.map(item => ({
@@ -366,7 +400,7 @@ export async function GET(request) {
     const profitChange = calculateChange(currentProfit, previousProfitValue);
 
     const totalStock = await Product.aggregate([
-      { $match: productFilter },
+      { $match: { userId: userObjectId, isActive: true } },
       { $group: { _id: null, total: { $sum: "$stock" } } }
     ]);
 
@@ -390,44 +424,25 @@ export async function GET(request) {
       }
     ]);
 
-    // Calculate monthly profit and spending
-    // Use filter dates if provided, otherwise last 12 months
-    let monthlyDataStartDate;
-    if (startDateParam && endDateParam) {
-      // When custom dates are set, go back 12 months from the start date for comparison
-      monthlyDataStartDate = new Date(startDate);
-      monthlyDataStartDate.setMonth(monthlyDataStartDate.getMonth() - 11);
-    } else {
-      // Default to last 12 months
-      monthlyDataStartDate = new Date(new Date().setMonth(new Date().getMonth() - 11));
-    }
-
-    // Build monthly filter - same as orderFilter but with 12-month date range
-    const monthlyOrderFilter = {
-      userId: userObjectId,
-      isActive: true,
-      orderDate: {
-        $gte: monthlyDataStartDate
-      }
-    };
-
-    // Apply status filter if specified
-    if (status !== "all") {
-      monthlyOrderFilter.orderStatus = status;
-    }
-
-    // Apply category filter if specified
-    if (category !== "all") {
-      const categoryProductIds = allProducts
-        .filter(p => p.category === category)
-        .map(p => p._id);
-      monthlyOrderFilter["orderItems.productId"] = { $in: categoryProductIds };
-    }
-
-    const monthlyProfitSpending = await Order.aggregate([
+    // Calculate monthly profit and spending for last 12 months
+    // Spending is now based on stock additions (from StockHistory)
+    // Profit is calculated from order revenue minus cost of goods sold
+    
+    // Get monthly revenue and profit from orders
+    const monthlyRevenueProfit = await Order.aggregate([
       {
-        $match: monthlyOrderFilter
+        $match: {
+          userId: userObjectId,
+          isActive: true,
+          orderDate: {
+            $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1)
+          },
+          ...(status !== "all" && { orderStatus: status })
+        }
       },
+      ...(category !== "all" ? [
+        { $match: { "orderItems.productId": { $in: allProducts.filter(p => p.category === category).map(p => p._id) } } }
+      ] : []),
       { $unwind: "$orderItems" },
       {
         $lookup: {
@@ -437,108 +452,123 @@ export async function GET(request) {
           as: "productInfo"
         }
       },
-      { $unwind: "$productInfo" },
       {
         $addFields: {
-          debug_productPrice: "$orderItems.productPrice",
-          debug_purchasePrice: "$orderItems.purchasePrice",
-          debug_fallbackPurchase: "$productInfo.purchasePrice",
-          debug_quantity: "$orderItems.quantity"
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$orderDate" },
-            month: { $month: "$orderDate" },
-            orderId: "$_id"
-          },
-          totalCost: {
-            $sum: {
-              $multiply: [
-                { $ifNull: ["$orderItems.purchasePrice", "$productInfo.purchasePrice"] },
-                "$orderItems.quantity"
-              ]
-            }
-          },
-          orderTotal: { $first: "$orderTotal" },
-          // Debug fields
-          debugData: {
-            $push: {
-              productPrice: "$debug_productPrice",
-              storedPurchase: "$debug_purchasePrice",
-              fallbackPurchase: "$debug_fallbackPurchase",
-              quantity: "$debug_quantity"
-            }
+          "orderItems.effectivePurchasePrice": {
+            $cond: [
+              { $gt: ["$orderItems.purchasePrice", 0] },
+              "$orderItems.purchasePrice",
+              { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+            ]
           }
         }
       },
       {
         $group: {
           _id: {
-            year: "$_id.year",
-            month: "$_id.month"
+            year: { $year: "$orderDate" },
+            month: { $month: "$orderDate" }
           },
-          totalProfit: { $sum: { $subtract: ["$orderTotal", "$totalCost"] } },
-          totalSpent: { $sum: "$totalCost" },
-          totalRevenue: { $sum: "$orderTotal" },
-          debugData: { $first: "$debugData" }
+          totalCost: {
+            $sum: {
+              $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
+            }
+          },
+          totalRevenue: {
+            $sum: "$orderItems.itemTotal"
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          totalCost: 1,
+          totalRevenue: 1,
+          totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
         }
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    console.log("🔍 Monthly aggregation raw result (first entry with debug):");
-    if (monthlyProfitSpending.length > 0) {
-      console.log(JSON.stringify(monthlyProfitSpending[monthlyProfitSpending.length - 1], null, 2));
+    // Get monthly spending from stock additions (StockHistory)
+    const monthlySpending = await StockHistory.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          changeDate: {
+            $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$changeDate" },
+            month: { $month: "$changeDate" }
+          },
+          totalSpent: { $sum: "$totalCost" },
+          totalStockAdded: { $sum: "$stockAdded" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Combine the two datasets
+    const combinedMonthlyData = [];
+    const now = new Date();
+    
+    // Generate last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      // Find revenue/profit data for this month
+      const revenueData = monthlyRevenueProfit.find(item => 
+        item._id.year === year && item._id.month === month
+      );
+      
+      // Find spending data for this month
+      const spendingData = monthlySpending.find(item => 
+        item._id.year === year && item._id.month === month
+      );
+      
+      combinedMonthlyData.push({
+        _id: { year, month },
+        totalRevenue: revenueData?.totalRevenue || 0,
+        totalProfit: revenueData?.totalProfit || 0,
+        totalSpent: spendingData?.totalSpent || 0,
+        totalStockAdded: spendingData?.totalStockAdded || 0
+      });
     }
 
-    // Fill in missing months with zero values
-    const fillMissingMonths = (data) => {
-      const now = new Date();
-      const months = [];
-      
-      // Generate last 12 months
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        
-        // Find if we have data for this month
-        const existing = data.find(item => 
-          item._id.year === year && item._id.month === month
-        );
-        
-        if (existing) {
-          months.push(existing);
-        } else {
-          // Add month with zero values
-          months.push({
-            _id: { year, month },
-            totalProfit: 0,
-            totalSpent: 0,
-            totalRevenue: 0
-          });
-        }
-      }
-      
-      return months;
-    };
-
-    const completeMonthlyData = fillMissingMonths(monthlyProfitSpending);
-
     // Format monthly profit/spending data
-    const monthlyProfitSpendingFormatted = completeMonthlyData.map(item => ({
+    const monthlyProfitSpendingFormatted = combinedMonthlyData.map(item => ({
       month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
       year: item._id.year,
       monthNum: item._id.month,
       profit: item.totalProfit,
       spent: item.totalSpent,
-      revenue: item.totalRevenue
+      revenue: item.totalRevenue,
+      stockAdded: item.totalStockAdded
     }));
-
-    console.log("📊 Monthly Data Formatted (last 3 months):");
-    console.log(JSON.stringify(monthlyProfitSpendingFormatted.slice(-3), null, 2));
+    
+    console.log("\n📅 MONTHLY DATA (Revenue/Profit from orders, Spending from stock additions):");
+    console.log("Revenue/Profit data:", JSON.stringify(monthlyRevenueProfit, null, 2));
+    console.log("Spending data (from StockHistory):", JSON.stringify(monthlySpending, null, 2));
+    
+    console.log("\n📊 FORMATTED MONTHLY DATA (Last 12 months):");
+    monthlyProfitSpendingFormatted.forEach(month => {
+      console.log(`\n${month.month}:`);
+      console.log(`  Revenue: ${month.revenue}`);
+      console.log(`  Spending (stock additions): ${month.spent}`);
+      console.log(`  Stock Added: ${month.stockAdded} units`);
+      console.log(`  Profit: ${month.profit}`);
+    });
+    
+    console.log("\n" + "=".repeat(80));
+    console.log("END OF STATS CALCULATION LOG");
+    console.log("=".repeat(80) + "\n");
 
     return NextResponse.json({
       success: true,

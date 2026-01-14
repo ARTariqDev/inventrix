@@ -323,6 +323,17 @@ export default function StatsPage() {
     }).format(amount);
   };
 
+  // Format currency with compact notation for chart labels (e.g., 1.03k)
+  const formatCurrencyCompact = (amount) => {
+    if (amount >= 1000000) {
+      return `Rs ${(amount / 1000000).toFixed(2)}M`;
+    } else if (amount >= 1000) {
+      return `Rs ${(amount / 1000).toFixed(2)}k`;
+    } else {
+      return `Rs ${amount.toFixed(2)}`;
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString([], {
       month: 'short',
@@ -918,13 +929,6 @@ export default function StatsPage() {
                     labels: getFilteredMonthlyData().map(item => formatMonth(item.month)),
                     datasets: [
                       {
-                        label: 'Profit',
-                        data: getFilteredMonthlyData().map(item => item.profit),
-                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 1,
-                      },
-                      {
                         label: 'Revenue',
                         data: getFilteredMonthlyData().map(item => item.revenue),
                         backgroundColor: 'rgba(59, 130, 246, 0.8)',
@@ -936,6 +940,13 @@ export default function StatsPage() {
                         data: getFilteredMonthlyData().map(item => item.spent),
                         backgroundColor: 'rgba(239, 68, 68, 0.8)',
                         borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1,
+                      },
+                      {
+                        label: 'Profit',
+                        data: getFilteredMonthlyData().map(item => Math.max(0, item.profit)),
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
                         borderWidth: 1,
                       }
                     ]
@@ -1000,7 +1011,7 @@ export default function StatsPage() {
                             size: 12
                           },
                           callback: function(value) {
-                            return formatCurrency(value);
+                            return formatCurrencyCompact(value);
                           }
                         }
                       }
@@ -1019,12 +1030,15 @@ export default function StatsPage() {
                           meta.data.forEach((bar, index) => {
                             const value = dataset.data[index];
                             
-                            const formattedValue = new Intl.NumberFormat('en-PK', {
-                              style: 'currency',
-                              currency: 'PKR',
-                              notation: 'compact',
-                              maximumFractionDigits: 1
-                            }).format(value);
+                            // Format with 2 decimal places
+                            let formattedValue;
+                            if (value >= 1000000) {
+                              formattedValue = `Rs ${(value / 1000000).toFixed(2)}M`;
+                            } else if (value >= 1000) {
+                              formattedValue = `Rs ${(value / 1000).toFixed(2)}k`;
+                            } else {
+                              formattedValue = `Rs ${value.toFixed(2)}`;
+                            }
                             
                             // Color based on value
                             if (value === 0) {
