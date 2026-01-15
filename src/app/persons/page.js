@@ -494,6 +494,7 @@ export default function PersonsPage() {
                       ))}
                     </div>
                   </div>
+                </div>
               </motion.div>
             </motion.div>
           )}
