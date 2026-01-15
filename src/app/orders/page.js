@@ -114,7 +114,9 @@ export default function OrdersPage() {
       .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
       .reduce((total, item) => {
         const product = products.find(p => p._id === item.productId);
-        return product ? total + (product.salePrice * Number(item.quantity)) : total;
+        // Use stored price for deleted products, otherwise use current product price
+        const price = product ? product.salePrice : (item.storedPrice || 0);
+        return total + (price * Number(item.quantity));
       }, 0);
     
     // Apply discount if enabled
@@ -299,7 +301,10 @@ export default function OrdersPage() {
       setOrderForm({
         orderItems: order.orderItems.map(item => ({
           productId: item.productId._id || item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          // Store the product price from the order for deleted products
+          storedPrice: item.productPrice,
+          storedName: item.productName
         })),
         receivedBy: order.receivedBy,
         address: order.address || "",
@@ -1055,12 +1060,15 @@ export default function OrdersPage() {
                             .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
                             .map((item, idx) => {
                               const product = products.find(p => p._id === item.productId);
-                              if (!product) return null;
-                              const itemTotal = product.salePrice * Number(item.quantity);
+                              // Use stored price/name for deleted products
+                              const price = product ? product.salePrice : (item.storedPrice || 0);
+                              const name = product ? product.name : (item.storedName || 'Deleted Product');
+                              if (!product && !item.storedPrice) return null;
+                              const itemTotal = price * Number(item.quantity);
                               return (
                                 <div key={idx} className="flex justify-between text-sm">
-                                  <span className="text-gray-700">
-                                    {product.name} × {item.quantity}
+                                  <span className={`${!product ? 'text-gray-400 italic' : 'text-gray-700'}`}>
+                                    {name}{!product && ' (deleted)'} × {item.quantity}
                                   </span>
                                   <span className="font-medium">
                                     Rs {itemTotal.toFixed(2)}
@@ -1075,7 +1083,8 @@ export default function OrdersPage() {
                                 .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
                                 .reduce((total, item) => {
                                   const product = products.find(p => p._id === item.productId);
-                                  return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                                  const price = product ? product.salePrice : (item.storedPrice || 0);
+                                  return total + (price * Number(item.quantity));
                                 }, 0);
                               
                               const discountAmount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
@@ -1166,7 +1175,8 @@ export default function OrdersPage() {
                                   .filter(item => item.productId && item.quantity && Number(item.quantity) > 0)
                                   .reduce((total, item) => {
                                     const product = products.find(p => p._id === item.productId);
-                                    return product ? total + (product.salePrice * Number(item.quantity)) : total;
+                                    const price = product ? product.salePrice : (item.storedPrice || 0);
+                                    return total + (price * Number(item.quantity));
                                   }, 0);
                                 const discount = orderForm.hasDiscount ? Number(orderForm.discountAmount) || 0 : 0;
                                 return Math.max(0, subtotal - discount).toFixed(2);

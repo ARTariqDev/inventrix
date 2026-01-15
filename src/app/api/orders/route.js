@@ -230,6 +230,9 @@ export async function PUT(request) {
       const enrichedItems = [];
       let calculatedTotal = 0;
       
+      // Get existing product IDs to allow inactive products that were already in the order
+      const existingProductIds = existingOrder.orderItems.map(item => item.productId.toString());
+      
       for (const item of orderItems) {
         const product = await Product.findById(item.productId).select('name salePrice purchasePrice stock isActive');
         
@@ -240,16 +243,27 @@ export async function PUT(request) {
           );
         }
 
-        if (!product.isActive) {
+        // Only check isActive for NEW products being added to the order
+        // Allow inactive products that were already part of this order
+        const isExistingProduct = existingProductIds.includes(item.productId.toString());
+        if (!product.isActive && !isExistingProduct) {
           return NextResponse.json(
             { error: `Product "${product.name}" is no longer available and cannot be added to orders` },
             { status: 400 }
           );
         }
 
-        if (product.stock < item.quantity) {
+        // For existing products in the order, get the original item to check stock difference
+        const existingItem = existingOrder.orderItems.find(
+          oi => oi.productId.toString() === item.productId.toString()
+        );
+        const previousQuantity = existingItem ? existingItem.quantity : 0;
+        const quantityDifference = item.quantity - previousQuantity;
+        
+        // Only check stock if we're increasing the quantity
+        if (quantityDifference > 0 && product.stock < quantityDifference) {
           return NextResponse.json(
-            { error: `Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` },
+            { error: `Insufficient stock for ${product.name}. Available: ${product.stock}, Additional Requested: ${quantityDifference}` },
             { status: 400 }
           );
         }
