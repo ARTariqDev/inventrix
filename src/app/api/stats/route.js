@@ -123,7 +123,9 @@ export async function GET(request) {
       // Previous period data for comparison
       previousOrders,
       previousRevenue,
-      previousProfitData
+      previousProfitData,
+      // Unique customers (distinct phone numbers)
+      uniqueCustomers
     ] = await Promise.all([
       // Total orders count
       Order.countDocuments(orderFilter),
@@ -335,6 +337,13 @@ export async function GET(request) {
             totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
           }
         }
+      ]),
+
+      // Unique customers (distinct phone numbers from all orders, not filtered by date)
+      Order.aggregate([
+        { $match: { userId: userObjectId, isActive: true, phoneNumber: { $exists: true, $ne: "" } } },
+        { $group: { _id: "$phoneNumber" } },
+        { $count: "total" }
       ])
     ]);
 
@@ -577,6 +586,7 @@ export async function GET(request) {
           totalOrders,
           totalRevenue: currentRevenue,
           totalProducts,
+          totalCustomers: uniqueCustomers[0]?.total || 0,
           avgOrderValue,
           totalProfit: currentProfit,
           profitMargin,

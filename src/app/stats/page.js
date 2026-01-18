@@ -17,7 +17,8 @@ import {
   Activity,
   Eye,
   Plus,
-  Minus
+  Minus,
+  Users
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -776,7 +777,7 @@ export default function StatsPage() {
         </AnimatePresence>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {[
             {
               title: "Total Revenue",
@@ -791,6 +792,13 @@ export default function StatsPage() {
               icon: ShoppingCart,
               color: "from-blue-500 to-cyan-500",
               change: stats?.overview?.ordersChange
+            },
+            {
+              title: "Total Customers",
+              value: stats?.overview?.totalCustomers || 0,
+              icon: Users,
+              color: "from-indigo-500 to-purple-500",
+              subtitle: "*based on unique phone numbers"
             },
             {
               title: "Products",
@@ -833,15 +841,11 @@ export default function StatsPage() {
                       {card.change >= 0 ? '+' : ''}{card.change.toFixed(1)}%
                     </span>
                   </div>
-                ) : card.subtitle ? (
+                ) : card.additionalInfo ? (
                   <div className="text-xs text-gray-500 font-medium text-right">
                     Inventory
                   </div>
-                ) : (
-                  <div className="text-sm text-gray-400 font-medium">
-                    New
-                  </div>
-                )}
+                ) : null}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">
                 {card.value}
