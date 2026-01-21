@@ -239,7 +239,7 @@ export async function GET(request) {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
       ]),
 
-      // Total profit calculation using historical order prices (with fallback to product lookup)
+      // Total profit calculation: Sum of [(salePrice * qty) - (purchasePrice * qty)] - discountAmount per order
       Order.aggregate([
         { $match: orderFilter },
         { $unwind: "$orderItems" },
@@ -253,34 +253,33 @@ export async function GET(request) {
         },
         {
           $addFields: {
-            "orderItems.effectivePurchasePrice": {
-              $cond: [
-                { $gt: ["$orderItems.purchasePrice", 0] },
-                "$orderItems.purchasePrice",
-                { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+            "orderItems.effectivePurchasePrice": { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+            "orderItems.itemMargin": {
+              $subtract: [
+                { $multiply: ["$orderItems.productPrice", "$orderItems.quantity"] },
+                { $multiply: [
+                  { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+                  "$orderItems.quantity"
+                ]}
               ]
             }
           }
         },
         {
           $group: {
-            _id: null,
-            totalCost: {
-              $sum: {
-                $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
-              }
-            },
-            totalRevenue: {
-              $sum: "$orderItems.itemTotal"
-            }
+            _id: "$_id",
+            orderMargin: { $sum: "$orderItems.itemMargin" },
+            discountAmount: { $first: "$discountAmount" }
           }
         },
         {
-          $project: {
+          $group: {
             _id: null,
-            totalCost: 1,
-            totalRevenue: 1,
-            totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
+            totalProfit: {
+              $sum: {
+                $subtract: ["$orderMargin", { $ifNull: ["$discountAmount", 0] }]
+              }
+            }
           }
         }
       ]),
@@ -293,7 +292,7 @@ export async function GET(request) {
         { $group: { _id: null, total: { $sum: "$orderTotal" } } }
       ]),
 
-      // Previous period profit calculation using historical order prices (with fallback to product lookup)
+      // Previous period profit calculation: Sum of [(salePrice * qty) - (purchasePrice * qty)] - discountAmount per order
       Order.aggregate([
         { $match: previousOrderFilter },
         { $unwind: "$orderItems" },
@@ -307,34 +306,33 @@ export async function GET(request) {
         },
         {
           $addFields: {
-            "orderItems.effectivePurchasePrice": {
-              $cond: [
-                { $gt: ["$orderItems.purchasePrice", 0] },
-                "$orderItems.purchasePrice",
-                { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+            "orderItems.effectivePurchasePrice": { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+            "orderItems.itemMargin": {
+              $subtract: [
+                { $multiply: ["$orderItems.productPrice", "$orderItems.quantity"] },
+                { $multiply: [
+                  { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+                  "$orderItems.quantity"
+                ]}
               ]
             }
           }
         },
         {
           $group: {
-            _id: null,
-            totalCost: {
-              $sum: {
-                $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
-              }
-            },
-            totalRevenue: {
-              $sum: "$orderItems.itemTotal"
-            }
+            _id: "$_id",
+            orderMargin: { $sum: "$orderItems.itemMargin" },
+            discountAmount: { $first: "$discountAmount" }
           }
         },
         {
-          $project: {
+          $group: {
             _id: null,
-            totalCost: 1,
-            totalRevenue: 1,
-            totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
+            totalProfit: {
+              $sum: {
+                $subtract: ["$orderMargin", { $ifNull: ["$discountAmount", 0] }]
+              }
+            }
           }
         }
       ]),
@@ -347,6 +345,109 @@ export async function GET(request) {
       ])
     ]);
 
+    // ========================================================================
+    // DEBUG: Log all products and orders for this user in the current period
+    // ========================================================================
+    console.log("\n" + "=".repeat(80));
+    console.log("📦 PRODUCTS LOG (All products for this user)");
+    console.log("=".repeat(80));
+    
+    const allUserProducts = await Product.find({ userId: userObjectId, isActive: true })
+      .select('name sku category purchasePrice salePrice stock')
+      .sort({ name: 1 });
+    
+    console.log(`Total Products: ${allUserProducts.length}\n`);
+    allUserProducts.forEach((product, index) => {
+      console.log(`${index + 1}. ${product.name}`);
+      console.log(`   SKU: ${product.sku}`);
+      console.log(`   Category: ${product.category}`);
+      console.log(`   Purchase Price: ${product.purchasePrice}`);
+      console.log(`   Sale Price: ${product.salePrice}`);
+      console.log(`   Stock: ${product.stock}`);
+      console.log("");
+    });
+
+    console.log("\n" + "=".repeat(80));
+    console.log("🧾 ORDERS LOG (Orders in current period: " + startDate.toISOString().split('T')[0] + " to " + endDate.toISOString().split('T')[0] + ")");
+    console.log("=".repeat(80));
+    
+    const allUserOrders = await Order.find(orderFilter)
+      .select('orderId orderDate orderStatus orderTotal orderItems receivedBy discountAmount')
+      .sort({ orderDate: -1 });
+
+    // ================= PROFIT LOG =====================
+    console.log("\n=====\nprofit log\n=======\n");
+    let totalProfitAllOrders = 0;
+    const productProfitMap = {};
+    allUserOrders.forEach((order, orderIdx) => {
+      let orderProfit = 0;
+      console.log(`Order #${orderIdx + 1}: ${order.orderId}`);
+      order.orderItems.forEach((item, itemIdx) => {
+        // Find product for this item
+        const product = allUserProducts.find(p => p._id.toString() === (item.productId?.toString?.() || item.productId));
+        let effectivePurchasePrice = item.purchasePrice;
+        if (!effectivePurchasePrice || effectivePurchasePrice === 0) {
+          effectivePurchasePrice = product ? product.purchasePrice : 0;
+        }
+        const purchaseTotal = (effectivePurchasePrice || 0) * (item.quantity || 0);
+        const saleTotal = (item.productPrice || item.salePrice || 0) * (item.quantity || 0);
+        const itemProfit = saleTotal - purchaseTotal;
+        orderProfit += itemProfit;
+        // Per-product profit
+        if (!productProfitMap[item.productName]) {
+          productProfitMap[item.productName] = { profit: 0, saleTotal: 0, purchaseTotal: 0, qty: 0 };
+        }
+        productProfitMap[item.productName].profit += itemProfit;
+        productProfitMap[item.productName].saleTotal += saleTotal;
+        productProfitMap[item.productName].purchaseTotal += purchaseTotal;
+        productProfitMap[item.productName].qty += item.quantity || 0;
+        console.log(`  Item #${itemIdx + 1}: ${item.productName}`);
+        console.log(`    Purchase Total: ${purchaseTotal}`);
+        console.log(`    Sale Total: ${saleTotal}`);
+        console.log(`    Profit: ${itemProfit}`);
+        if (!item.purchasePrice || item.purchasePrice === 0) {
+          console.warn(`    ⚠️  Used product purchase price (${effectivePurchasePrice}) for item: ${item.productName}`);
+        }
+      });
+      const discount = order.discountAmount || 0;
+      orderProfit -= discount;
+      totalProfitAllOrders += orderProfit;
+      console.log(`  Discount: ${discount}`);
+      console.log(`  Order Profit (after discount): ${orderProfit}`);
+      console.log("");
+    });
+    console.log("---\nProfit per product:");
+    Object.entries(productProfitMap).forEach(([name, data]) => {
+      console.log(`Product: ${name}`);
+      console.log(`  Total Sold: ${data.qty}`);
+      console.log(`  Sale Total: ${data.saleTotal}`);
+      console.log(`  Purchase Total: ${data.purchaseTotal}`);
+      console.log(`  Profit: ${data.profit}`);
+    });
+    console.log("---\nTotal profit for all orders:", totalProfitAllOrders);
+    console.log("====================================\n");
+    
+    // Restore summary totals calculation
+    let totalOrderTotal = 0;
+    let totalItemTotal = 0;
+    let totalCostFromItems = 0;
+    allUserOrders.forEach(order => {
+      totalOrderTotal += order.orderTotal || 0;
+      order.orderItems.forEach(item => {
+        totalItemTotal += item.itemTotal || 0;
+        totalCostFromItems += (item.purchasePrice || 0) * (item.quantity || 0);
+      });
+    });
+    console.log("\n" + "=".repeat(80));
+    console.log("📊 SUMMARY TOTALS");
+    console.log("=".repeat(80));
+    console.log(`Sum of all Order Totals (Revenue): ${totalOrderTotal}`);
+    console.log(`Sum of all Item Totals (Undiscounted): ${totalItemTotal}`);
+    console.log(`Sum of all Item Costs: ${totalCostFromItems}`);
+    console.log(`Profit (OrderTotal - Cost): ${totalOrderTotal - totalCostFromItems}`);
+    console.log(`Profit (ItemTotal - Cost): ${totalItemTotal - totalCostFromItems}`);
+    console.log("=".repeat(80) + "\n");
+
     console.log("\n" + "=".repeat(80));
     console.log("🔍 STATS API RESULTS - DETAILED BREAKDOWN");
     console.log("=".repeat(80));
@@ -358,16 +459,13 @@ export async function GET(request) {
     console.log("- Status Distribution:", statusDistribution);
     
     console.log("\n💰 PROFIT CALCULATION BREAKDOWN:");
-    console.log("- Total Revenue (from itemTotal):", profitData[0]?.totalRevenue || 0);
-    console.log("- Total Cost (purchase prices):", profitData[0]?.totalCost || 0);
-    console.log("- Total Profit (Revenue - Cost):", profitData[0]?.totalProfit || 0);
-    console.log(`- Calculation: ${profitData[0]?.totalRevenue || 0} - ${profitData[0]?.totalCost || 0} = ${profitData[0]?.totalProfit || 0}`);
+    console.log("- Total Revenue (from orderTotal):", totalRevenue[0]?.total || 0);
+    console.log("- Total Profit (margin - discounts):", profitData[0]?.totalProfit || 0);
     
     console.log("\n📈 PREVIOUS PERIOD COMPARISON:");
     console.log("- Previous Orders:", previousOrders);
     console.log("- Previous Revenue:", previousRevenue[0]?.total || 0);
     console.log("- Previous Profit:", previousProfitData[0]?.totalProfit || 0);
-    console.log("- Previous Cost:", previousProfitData[0]?.totalCost || 0);
 
     // Format daily revenue data
     const dailyRevenueFormatted = dailyRevenue.map(item => ({
@@ -388,12 +486,83 @@ export async function GET(request) {
       ? (totalRevenue[0]?.total || 0) / totalOrders 
       : 0;
 
+    // Get spending for the current filtered period (for profit calculation)
+    const currentPeriodSpending = await StockHistory.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          changeDate: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$productInfo",
+          preserveNullAndEmptyArrays: false
+        }
+      },
+      {
+        $match: {
+          "productInfo.isActive": true
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: "$totalCost" }
+        }
+      }
+    ]);
+
+    // Get previous period spending
+    const previousPeriodSpending = await StockHistory.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          changeDate: { $gte: previousStartDate, $lte: previousEndDate }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$productInfo",
+          preserveNullAndEmptyArrays: false
+        }
+      },
+      {
+        $match: {
+          "productInfo.isActive": true
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: "$totalCost" }
+        }
+      }
+    ]);
+
     // Calculate percentage changes
     const currentRevenue = totalRevenue[0]?.total || 0;
     const previousRevenueValue = previousRevenue[0]?.total || 0;
     const previousAvgOrderValue = previousOrders > 0 ? previousRevenueValue / previousOrders : 0;
 
-    // Calculate profit metrics
+    // Calculate profit metrics - profit is (salePrice * qty - purchasePrice * qty) - discount per order
+    const currentSpending = currentPeriodSpending[0]?.totalSpent || 0;
     const currentProfit = profitData[0]?.totalProfit || 0;
     const previousProfitValue = previousProfitData[0]?.totalProfit || 0;
     const profitMargin = currentRevenue > 0 ? (currentProfit / currentRevenue) * 100 : 0;
@@ -437,8 +606,37 @@ export async function GET(request) {
     // Spending is now based on stock additions (from StockHistory)
     // Profit is calculated from order revenue minus cost of goods sold
     
-    // Get monthly revenue and profit from orders
-    const monthlyRevenueProfit = await Order.aggregate([
+    // Get monthly revenue from orders using orderTotal (includes discounts)
+    const monthlyRevenue = await Order.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          isActive: true,
+          orderDate: {
+            $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1)
+          },
+          ...(status !== "all" && { orderStatus: status })
+        }
+      },
+      ...(category !== "all" ? [
+        { $match: { "orderItems.productId": { $in: allProducts.filter(p => p.category === category).map(p => p._id) } } }
+      ] : []),
+      {
+        $group: {
+          _id: {
+            year: { $year: "$orderDate" },
+            month: { $month: "$orderDate" }
+          },
+          totalRevenue: {
+            $sum: "$orderTotal"
+          }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Get monthly profit from orders: Sum profit by order, then sum by month
+    const monthlyProfit = await Order.aggregate([
       {
         $match: {
           userId: userObjectId,
@@ -463,43 +661,69 @@ export async function GET(request) {
       },
       {
         $addFields: {
-          "orderItems.effectivePurchasePrice": {
-            $cond: [
-              { $gt: ["$orderItems.purchasePrice", 0] },
-              "$orderItems.purchasePrice",
-              { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] }
+          "orderItems.effectivePurchasePrice": { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+          "orderItems.itemMargin": {
+            $subtract: [
+              { $multiply: [
+                { $ifNull: ["$orderItems.productPrice", { $ifNull: ["$orderItems.salePrice", 0] }] },
+                { $ifNull: ["$orderItems.quantity", 0] }
+              ] },
+              { $multiply: [
+                { $ifNull: [{ $arrayElemAt: ["$productInfo.purchasePrice", 0] }, 0] },
+                { $ifNull: ["$orderItems.quantity", 0] }
+              ] }
             ]
           }
         }
       },
       {
         $group: {
-          _id: {
-            year: { $year: "$orderDate" },
-            month: { $month: "$orderDate" }
-          },
-          totalCost: {
-            $sum: {
-              $multiply: ["$orderItems.effectivePurchasePrice", "$orderItems.quantity"]
-            }
-          },
-          totalRevenue: {
-            $sum: "$orderItems.itemTotal"
-          }
+          _id: "$_id",
+          orderDate: { $first: "$orderDate" },
+          orderMargin: { $sum: "$orderItems.itemMargin" },
+          discountAmount: { $first: "$discountAmount" }
         }
       },
       {
-        $project: {
-          _id: 1,
-          totalCost: 1,
-          totalRevenue: 1,
-          totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
+        $addFields: {
+          orderProfit: { $subtract: ["$orderMargin", { $ifNull: ["$discountAmount", 0] }] },
+          year: { $year: "$orderDate" },
+          month: { $month: "$orderDate" }
+        }
+      },
+      {
+        $group: {
+          _id: { year: "$year", month: "$month" },
+          totalProfit: { $sum: "$orderProfit" }
         }
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // Get monthly spending from stock additions (StockHistory)
+    // Combine monthly revenue and profit data
+    const monthlyRevenueProfit = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+
+      const revenueEntry = monthlyRevenue.find(item => item._id.year === year && item._id.month === month);
+      const profitEntry = monthlyProfit.find(item => item._id.year === year && item._id.month === month);
+
+      const revenue = revenueEntry?.totalRevenue || 0;
+      const profit = profitEntry?.totalProfit || 0;
+
+      if (revenue > 0 || profit !== 0) {
+        monthlyRevenueProfit.push({
+          _id: { year, month },
+          totalRevenue: revenue,
+          totalProfit: profit
+        });
+      }
+    }
+
+    // Get monthly spending from stock additions (StockHistory) - only for active products
     const monthlySpending = await StockHistory.aggregate([
       {
         $match: {
@@ -507,6 +731,28 @@ export async function GET(request) {
           changeDate: {
             $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1)
           }
+        }
+      },
+      // Lookup to check if product is still active
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      },
+      // Unwind to access productInfo fields properly
+      {
+        $unwind: {
+          path: "$productInfo",
+          preserveNullAndEmptyArrays: false // Exclude if product doesn't exist
+        }
+      },
+      // Only include stock history for products that are active
+      {
+        $match: {
+          "productInfo.isActive": true
         }
       },
       {
@@ -522,9 +768,44 @@ export async function GET(request) {
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
+    // DEBUG: Log detailed spending breakdown for January
+    const janSpendingDebug = await StockHistory.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          changeDate: {
+            $gte: new Date(2026, 0, 1),
+            $lte: new Date(2026, 0, 31, 23, 59, 59)
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "productInfo"
+        }
+      }
+    ]);
+
+    console.log("\n" + "=".repeat(80));
+    console.log("💸 JANUARY 2026 SPENDING BREAKDOWN (StockHistory entries)");
+    console.log("=".repeat(80));
+    janSpendingDebug.forEach((entry, index) => {
+      const product = entry.productInfo[0];
+      const isActive = product ? product.isActive : false;
+      const productName = product ? product.name : "DELETED PRODUCT";
+      console.log(`${index + 1}. ${productName} ${isActive ? '✅' : '❌ (inactive/deleted)'}`);
+      console.log(`   Date: ${entry.changeDate}`);
+      console.log(`   Stock Added: ${entry.stockAdded}, Total Cost: ${entry.totalCost}`);
+      console.log(`   Product exists: ${product ? 'Yes' : 'No'}, isActive: ${isActive}`);
+      console.log("");
+    });
+    console.log("=".repeat(80));
+
     // Combine the two datasets
     const combinedMonthlyData = [];
-    const now = new Date();
     
     // Generate last 12 months
     for (let i = 11; i >= 0; i--) {
@@ -545,7 +826,7 @@ export async function GET(request) {
       combinedMonthlyData.push({
         _id: { year, month },
         totalRevenue: revenueData?.totalRevenue || 0,
-        totalProfit: revenueData?.totalProfit || 0,
+        totalProfit: revenueData?.totalProfit ?? 0,
         totalSpent: spendingData?.totalSpent || 0,
         totalStockAdded: spendingData?.totalStockAdded || 0
       });
