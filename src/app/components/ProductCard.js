@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Pencil, Trash2, Save, X, Banknote, Package, Calendar, Eye, EyeOff } from "lucide-react";
 
@@ -8,6 +8,29 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   const [editForm, setEditForm] = useState({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // State for total stock brought
+  const [totalStockBrought, setTotalStockBrought] = useState(null);
+  const [loadingTotalStock, setLoadingTotalStock] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+    async function fetchTotalStock() {
+      setLoadingTotalStock(true);
+      try {
+        const res = await fetch(`/api/products/total-stock-brought?productId=${product._id}`);
+        if (!res.ok) throw new Error("Failed to fetch total stock brought");
+        const data = await res.json();
+        if (!ignore) setTotalStockBrought(data.totalStockBrought);
+      } catch (e) {
+        if (!ignore) setTotalStockBrought(null);
+      } finally {
+        if (!ignore) setLoadingTotalStock(false);
+      }
+    }
+    if (product._id) fetchTotalStock();
+    return () => { ignore = true; };
+  }, [product._id]);
 
   const startEdit = (product) => {
     setEditingId(product._id);
@@ -449,6 +472,13 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
             <span className="mr-1">{stockStatus.icon}</span>
             {stockStatus.text}
           </span>
+          <div className="text-xs text-gray-500 mt-1">
+            {loadingTotalStock ? (
+              <span>Loading total stock brought...</span>
+            ) : (
+              <span>Total brought: <span className="font-semibold">{totalStockBrought !== null ? totalStockBrought : "-"}</span></span>
+            )}
+          </div>
         </div>
       </div>
 

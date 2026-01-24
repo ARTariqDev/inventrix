@@ -715,7 +715,7 @@ export default function OrdersPage() {
                   )}
                 </div>
 
-                {/* Order Items */}
+                {/* Order Items & Profit */}
                 <div className="bg-gray-50 rounded-lg p-3 mb-4">
                   <h4 className="font-medium text-gray-900 mb-2">Order Items:</h4>
                   <div className="space-y-1">
@@ -729,6 +729,25 @@ export default function OrdersPage() {
                         </span>
                       </div>
                     ))}
+                  </div>
+                  {/* Per Order Profit */}
+                  <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                    <span className="text-sm font-medium text-green-700">Order Profit:</span>
+                    <span className="font-bold text-green-700">
+                      {(() => {
+                        let profit = 0;
+                        for (const item of order.orderItems) {
+                          const salePrice = typeof item.productPrice === 'number' ? item.productPrice : 0;
+                          const purchasePrice = typeof item.purchasePrice === 'number' ? item.purchasePrice : 0;
+                          profit += (item.quantity * salePrice) - (item.quantity * purchasePrice);
+                        }
+                        // Subtract discount if present
+                        if (typeof order.discountAmount === 'number' && order.discountAmount > 0) {
+                          profit -= order.discountAmount;
+                        }
+                        return `Rs ${profit.toFixed(2)}`;
+                      })()}
+                    </span>
                   </div>
                 </div>
 
