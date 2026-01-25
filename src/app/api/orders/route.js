@@ -16,13 +16,27 @@ export async function GET(request) {
     }
 
     const orders = await Order.find({ userId, isActive: true })
-      .populate('orderItems.productId', 'name salePrice')
+      .populate('orderItems.productId', 'name salePrice purchasePrice')
       .sort({ orderDate: -1 });
+
+    // Enrich order items with effectivePurchasePrice (fallback to item's purchasePrice) and itemProfit
+    const enrichedOrders = orders.map(order => {
+      const o = order.toObject();
+      o.orderItems = o.orderItems.map(item => {
+        const product = item.productId || {};
+        const effectivePurchasePrice = (product.purchasePrice && product.purchasePrice > 0) ? product.purchasePrice : (item.purchasePrice || 0);
+        const salePrice = item.productPrice || product.salePrice || 0;
+        const qty = item.quantity || 0;
+        const itemProfit = (salePrice - effectivePurchasePrice) * qty;
+        return { ...item, effectivePurchasePrice, itemProfit };
+      });
+      return o;
+    });
 
     return NextResponse.json({
       success: true,
-      orders,
-      count: orders.length
+      orders: enrichedOrders,
+      count: enrichedOrders.length
     });
 
   } catch (error) {

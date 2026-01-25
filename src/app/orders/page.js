@@ -737,9 +737,15 @@ export default function OrdersPage() {
                       {(() => {
                         let profit = 0;
                         for (const item of order.orderItems) {
-                          const salePrice = typeof item.productPrice === 'number' ? item.productPrice : 0;
-                          const purchasePrice = typeof item.purchasePrice === 'number' ? item.purchasePrice : 0;
-                          profit += (item.quantity * salePrice) - (item.quantity * purchasePrice);
+                          // Determine sale price (item override, then populated product)
+                          const salePrice = typeof item.productPrice === 'number' ? item.productPrice : (item.productId?.salePrice || 0);
+                          // Use effectivePurchasePrice (from backend) if present and > 0, otherwise fall back to item.purchasePrice or populated product purchasePrice
+                          const effectivePurchase = (typeof item.effectivePurchasePrice === 'number' && item.effectivePurchasePrice > 0)
+                            ? item.effectivePurchasePrice
+                            : (typeof item.purchasePrice === 'number' && item.purchasePrice > 0)
+                              ? item.purchasePrice
+                              : (item.productId?.purchasePrice || 0);
+                          profit += (item.quantity * salePrice) - (item.quantity * effectivePurchase);
                         }
                         // Subtract discount if present
                         if (typeof order.discountAmount === 'number' && order.discountAmount > 0) {
