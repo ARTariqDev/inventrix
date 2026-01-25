@@ -50,12 +50,35 @@ export default function PersonsPage() {
   }, []);
 
   useEffect(() => {
+    // Live search while typing with short debounce to reduce API calls
     const delayedSearch = setTimeout(() => {
       fetchPersons(searchTerm);
-    }, 300);
+    }, 200);
 
     return () => clearTimeout(delayedSearch);
   }, [searchTerm]);
+
+  // Instant client-side filtering for a seamless feel while the debounced
+  // server fetch keeps the data in sync in the background.
+  useEffect(() => {
+    if (!searchTerm || !searchTerm.trim()) {
+      setFilteredPersons(persons);
+      return;
+    }
+
+    const s = searchTerm.toLowerCase();
+    const filtered = persons.filter(p => {
+      const recipient = (p.recipient || "").toLowerCase();
+      const phone = (p.phoneNumber || "").toLowerCase();
+      const address = (p.address || "").toLowerCase();
+      return (
+        recipient.includes(s) ||
+        phone.includes(s) ||
+        address.includes(s)
+      );
+    });
+    setFilteredPersons(filtered);
+  }, [searchTerm, persons]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PK', {
@@ -98,15 +121,7 @@ export default function PersonsPage() {
     return { firstName, lastName };
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
-        </div>
-      </Layout>
-    );
-  }
+
 
   return (
     <Layout>
@@ -120,9 +135,15 @@ export default function PersonsPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
             Recipients Management
           </h1>
-          <p className="text-gray-600">
-            Search recipients by name and view their order history
-          </p>
+          <div className="text-gray-600 flex items-center gap-3">
+            <span>Search recipients by name and view their order history</span>
+            {loading && (
+              <span className="inline-flex items-center text-sm text-gray-500">
+                <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500" />
+                <span className="ml-2">Loading</span>
+              </span>
+            )}
+          </div>
         </motion.div>
 
         {/* Search */}
@@ -131,7 +152,7 @@ export default function PersonsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-lg p-6 mb-6"
         >
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -139,8 +160,13 @@ export default function PersonsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by recipient name (e.g., Ali shows all orders for Ali)..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
+              {loading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500" />
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -161,8 +187,8 @@ export default function PersonsPage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
+          <div className="hidden md:block">
+            <table className="w-full table-auto">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -198,7 +224,7 @@ export default function PersonsPage() {
                       animate={{ opacity: 1 }}
                       className="hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="flex items-center">
                           <Users className="w-5 h-5 text-purple-500 mr-3" />
                           <div>
@@ -213,7 +239,7 @@ export default function PersonsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="text-sm text-gray-500">
                           {person.phoneNumber && (
                             <div className="flex items-center mb-1">
@@ -229,19 +255,19 @@ export default function PersonsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="flex items-center text-sm font-medium text-gray-900">
                           <ShoppingBag className="w-4 h-4 mr-1" />
                           {person.orderCount}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="flex items-center text-sm font-medium text-gray-900">
                           <Banknote className="w-4 h-4 mr-1" />
                           {formatCurrency(person.totalAmount)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="text-sm">
                           {person.totalRemainingAmount > 0 ? (
                             <>
@@ -258,13 +284,13 @@ export default function PersonsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-normal">
                         <div className="flex items-center text-sm text-gray-500">
                           <Calendar className="w-4 h-4 mr-2" />
                           {formatDate(person.lastOrderDate)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-normal text-right text-sm font-medium">
                         <button
                           onClick={() => openOrderHistoryModal(person)}
                           className="inline-flex items-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
