@@ -1,27 +1,29 @@
-# Inventrix - Inventory Management System
+# TwinStar - Inventory Management System
 
-A modern, full-stack inventory management system built with Next.js 15, React 19, and MongoDB. Features real-time analytics, order management, and responsive design with smooth animations  .
+A modern, full-stack inventory management system built with Next.js 15, React 19, and MongoDB. Features real-time analytics, order management, customer tracking, profit calculations, and responsive design with smooth animations.
 
 ## Features
 
-- **Authentication System**: Secure login/signup with bcrypt password hashing
-- **Product Management**: CRUD operations for inventory items with categories and stock tracking
-- **Dynamic Category Colors**: Color picker system for assigning custom colors to product categories
-- **Order Management**: Complete order lifecycle with status tracking
-- **Analytics Dashboard**: Interactive charts and business insights
-- **Responsive Design**: Mobile-first approach with hamburger navigation
-- **Real-time Updates**: Live data synchronization across components
-- **Modern UI**: Framer Motion animations and Tailwind CSS styling
+- **Authentication System**: Secure login/signup with bcrypt password hashing and HTTP-only cookies
+- **Product Management**: CRUD operations for inventory items with categories, purchase/sale price tracking, and auto-generated SKUs
+- **Customer Management**: Track customers with order history, spending analytics, and contact information
+- **Order Management**: Complete order lifecycle with status tracking, credit orders, discount support, and remaining balance tracking
+- **Profit Analytics**: Real-time profit calculations based on purchase vs sale prices with detailed breakdowns
+- **Stock History**: Automatic tracking of stock additions and changes for spending calculations
+- **Monthly Reports**: PDF report generation with detailed product and order summaries
+- **Analytics Dashboard**: Interactive Chart.js visualizations with revenue trends and business insights
+- **Responsive Design**: Mobile-first approach with collapsible sidebar navigation
+- **Modern UI**: Framer Motion animations and Tailwind CSS styling with gradient themes
 
 ## Tech Stack
 
-- **Framework**: Next.js 15.1.0 with App Router & Turbopack
+- **Framework**: Next.js 15.1.11 with App Router & Turbopack
 - **Frontend**: React 19.0.0, Framer Motion 12.23.12
 - **Styling**: Tailwind CSS 3.4.1, Lucide React Icons
 - **Backend**: Next.js API Routes, MongoDB with Mongoose 8.18.0
-- **Authentication**: Custom implementation with bcryptjs
+- **Authentication**: Custom implementation with bcryptjs and HTTP-only cookies
 - **Charts**: Chart.js 4.5.0 with react-chartjs-2
-- **PDF Generation**: jsPDF & html2canvas for invoices
+- **PDF Generation**: jsPDF 3.0.3 & jsPDF-autotable 5.0.2 for reports and invoices
 
 ## Project Structure
 
@@ -37,8 +39,19 @@ inventrix/
 │
 ├── scripts/                        # Database utilities
 │   ├── add-sample-data.js          # Sample data generator
+│   ├── backfill-stock-history.js   # Stock history migration tool
 │   ├── check-order-dates.js        # Date validation utility
-│   └── debug-database.js           # Database debugging tool
+│   ├── check-test-data.js          # Test data verification
+│   ├── create-snapshot.js          # Monthly snapshot generator
+│   ├── debug-database.js           # Database debugging tool
+│   ├── find-product-and-order.js   # Search utility
+│   ├── find-user.js                # User lookup tool
+│   ├── fix-product-schema.js       # Schema migration script
+│   ├── fix-user-password.js        # Password reset utility
+│   ├── inject-test-profit-data.js  # Test data with profit info
+│   ├── list-all-users.js           # User listing utility
+│   ├── migrate-products.js         # Product migration script
+│   └── set-password.js             # Password management tool
 │
 ├── src/
 │   ├── app/                        # Next.js App Router
@@ -50,8 +63,12 @@ inventrix/
 │   │   │   │       └── route.js    # POST: User logout
 │   │   │   ├── orders/
 │   │   │   │   └── route.js        # GET, POST, PUT, DELETE: Order CRUD
+│   │   │   ├── persons/
+│   │   │   │   └── route.js        # GET: Customer data and analytics
 │   │   │   ├── products/
 │   │   │   │   └── route.js        # GET, POST, PUT, DELETE: Product CRUD
+│   │   │   ├── report/
+│   │   │   │   └── route.js        # GET: Monthly report data for PDF
 │   │   │   ├── signup/
 │   │   │   │   └── route.js        # POST: User registration
 │   │   │   └── stats/
@@ -61,7 +78,12 @@ inventrix/
 │   │   │   ├── Button.js           # Custom button with animations
 │   │   │   ├── Layout.js           # Main layout wrapper
 │   │   │   ├── ProductCard.js      # Product display/edit card
+│   │   │   ├── ReportDropdown.js   # Month/year selector for reports
+│   │   │   ├── ReportPDF.js        # PDF generation logic
 │   │   │   └── SideBar.js          # Navigation sidebar
+│   │   │
+│   │   ├── hooks/
+│   │   │   └── useAuth.js          # Authentication hook
 │   │   │
 │   │   ├── pages/                  # Application Pages
 │   │   │   ├── invoices/
@@ -70,6 +92,8 @@ inventrix/
 │   │   │   │   └── page.js         # User login page
 │   │   │   ├── orders/
 │   │   │   │   └── page.js         # Order management page
+│   │   │   ├── persons/
+│   │   │   │   └── page.js         # Customer management page
 │   │   │   ├── products/
 │   │   │   │   └── page.js         # Product management page
 │   │   │   ├── signup/
@@ -84,7 +108,7 @@ inventrix/
 │   │   └── page.js                 # Home page (dashboard)
 │   │
 │   └── models/
-│       └── models.js               # MongoDB schemas (User, Product, Order)
+│       └── models.js               # MongoDB schemas (User, Product, Order, StockHistory, MonthlySnapshot, Counter)
 │
 ├── .env                            # Environment variables
 ├── .gitignore                      # Git ignore rules
@@ -104,183 +128,114 @@ inventrix/
 - **Purpose**: Main application layout wrapper
 - **Features**: 
   - Responsive sidebar integration
-  - Mobile header with hamburger menu
+  - Mobile header with toggle button
   - Authentication state management
-  - Consistent spacing and margins
+  - Consistent spacing and layout structure
 
 #### `SideBar.js`
-- **Purpose**: Navigation sidebar component
+- **Purpose**: Navigation sidebar component with report generation
 - **Features**:
-  - Desktop/mobile adaptive behavior
-  - Framer Motion animations
-  - Brand logo and navigation links
-  - Logout functionality with confirmation
+  - Desktop/mobile adaptive behavior (collapsible on desktop, overlay on mobile)
+  - Framer Motion animations for smooth transitions
+  - Navigation links to all main pages (Dashboard, Products, Orders, Analytics, Invoices, Persons)
+  - PDF report download with month/year selection
+  - Logout functionality with confirmation modal
+  - Auto-expanding/collapsing based on screen size
 
 **Responsive Sidebar Implementation:**
 ```javascript
 // src/app/components/SideBar.js
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ReportDropdown from './ReportDropdown';
 
-export default function SideBar({ isOpen, setIsOpen }) {
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+export default function Sidebar({ onExpandChange, isExpanded: parentExpanded, onToggle }) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(parentExpanded ?? false);
   const router = useRouter();
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    if (isMobile && onToggle) {
+      onToggle(); // Mobile uses parent control
+    } else {
+      setIsExpanded(!isExpanded); // Desktop handles locally
+    }
+  };
+
   const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    if (response.ok) router.push('/login');
+  };
+
+  const handleDownloadReport = async (month, year) => {
+    const response = await fetch(`/api/report?month=${month}&year=${year}`);
+    const data = await response.json();
+    if (data.success) {
+      await generateReportPDF({ 
+        month: data.month, 
+        products: data.products, 
+        orders: data.orders, 
+        totals: data.totals 
       });
-      
-      if (response.ok) {
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
     }
-  };
-
-  // Animation variants for smooth transitions
-  const sidebarVariants = {
-    open: {
-      x: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    },
-    closed: {
-      x: "-100%",
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    }
-  };
-
-  const overlayVariants = {
-    open: { opacity: 1 },
-    closed: { opacity: 0 }
   };
 
   return (
-    <>
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-            variants={overlayVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+    <motion.aside
+      initial={false}
+      animate={{ width: isExpanded ? 240 : 64 }}
+      className="bg-gradient-to-b from-purple-600 to-pink-500 text-white flex flex-col"
+    >
+      {/* Brand Section */}
+      <div className="p-4">
+        <motion.h1 
+          animate={{ opacity: isExpanded ? 1 : 0 }}
+          className="text-xl font-bold"
+        >
+          TwinStar
+        </motion.h1>
+      </div>
 
-      {/* Sidebar */}
-      <motion.div
-        className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-purple-600 to-pink-500 text-white z-50 lg:relative lg:translate-x-0"
-        variants={sidebarVariants}
-        initial={false}
-        animate={isOpen ? "open" : "closed"}
-      >
-        <div className="p-6">
-          {/* Logo Section */}
-          <div className="flex items-center space-x-3 mb-8">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <svg width="32" height="32" viewBox="0 0 100 100" className="text-white">
-                {/* Custom package logo SVG */}
-              </svg>
-            </motion.div>
-            <h1 className="text-xl font-bold">Inventrix</h1>
-          </div>
+      {/* Navigation Links */}
+      <nav className="flex-1 space-y-2 p-2">
+        <NavLink href="/" icon={BarChart3} label="Dashboard" expanded={isExpanded} />
+        <NavLink href="/products" icon={Package} label="Products" expanded={isExpanded} />
+        <NavLink href="/orders" icon={ShoppingCart} label="Orders" expanded={isExpanded} />
+        <NavLink href="/stats" icon={BarChart3} label="Analytics" expanded={isExpanded} />
+        <NavLink href="/invoices" icon={FileText} label="Invoices" expanded={isExpanded} />
+        <NavLink href="/persons" icon={Users} label="Persons" expanded={isExpanded} />
+        
+        {/* Report Dropdown */}
+        {isExpanded && <ReportDropdown onDownload={handleDownloadReport} />}
+      </nav>
 
-          {/* Navigation Links */}
-          <nav className="space-y-2">
-            {[
-              { href: '/', label: 'Dashboard', icon: 'home' },
-              { href: '/products', label: 'Products', icon: 'package' },
-              { href: '/orders', label: 'Orders', icon: 'shopping-cart' },
-              { href: '/stats', label: 'Analytics', icon: 'bar-chart' },
-              { href: '/invoices', label: 'Invoices', icon: 'file-text' }
-            ].map((item) => (
-              <motion.div
-                key={item.href}
-                whileHover={{ x: 5 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link
-                  href={item.href}
-                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <span>{item.label}</span>
-                </Link>
-              </motion.div>
-            ))}
-          </nav>
-        </div>
-
-        {/* Logout Section */}
-        <div className="absolute bottom-6 left-6 right-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowLogoutConfirm(true)}
-            className="w-full bg-red-500 hover:bg-red-600 p-3 rounded-lg transition-colors"
-          >
-            Logout
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* Logout Confirmation Modal */}
-      <AnimatePresence>
-        {showLogoutConfirm && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-lg"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-            >
-              <h3 className="text-lg font-semibold mb-4">Confirm Logout</h3>
-              <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                  Yes, Logout
-                </button>
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+      {/* Logout Button */}
+      <div className="p-4">
+        <motion.button
+          onClick={handleLogout}
+          className="w-full bg-red-500 hover:bg-red-600 p-3 rounded-lg transition-colors"
+        >
+          {isExpanded ? 'Logout' : <LogOut />}
+        </motion.button>
+      </div>
+    </motion.aside>
   );
 }
 ```
@@ -298,10 +253,30 @@ export default function SideBar({ isOpen, setIsOpen }) {
 - **Features**:
   - Inline editing capabilities
   - Status indicators (active/inactive, stock levels)
-  - Category color coding
+  - Purchase and sale price fields
+  - Category organization
+  - Real-time validation
   - Smooth animations and transitions
 
-**Inline Editing with Validation:**
+#### `ReportDropdown.js`
+- **Purpose**: Month and year selector for PDF reports
+- **Features**:
+  - Dropdown interface with month/year selection
+  - Animated open/close transitions
+  - Dynamic year range (2020 to current year)
+  - Loading states during report generation
+
+#### `ReportPDF.js`
+- **Purpose**: PDF report generation logic
+- **Features**:
+  - Multi-page PDF creation with jsPDF
+  - Detailed product tables with purchase/sale prices and stock
+  - Order summaries with profit calculations
+  - Status-based order grouping
+  - Professional formatting with headers and footers
+  - Automatic page breaks and layout management
+
+**Inline Editing with Purchase/Sale Prices:**
 ```javascript
 // src/app/components/ProductCard.js
 'use client';
@@ -313,16 +288,10 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
   const [editData, setEditData] = useState(product);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Category color mapping
-  const getCategoryColor = (category) => {
-    const colors = {
-      'Electronics': 'bg-blue-100 text-blue-800',
-      'Clothing': 'bg-purple-100 text-purple-800',
-      'Food': 'bg-green-100 text-green-800',
-      'Books': 'bg-yellow-100 text-yellow-800',
-      'default': 'bg-gray-100 text-gray-800'
-    };
-    return colors[category] || colors.default;
+  // Calculate profit margin
+  const getProfitMargin = (salePrice, purchasePrice) => {
+    if (!purchasePrice || purchasePrice === 0) return 0;
+    return (((salePrice - purchasePrice) / purchasePrice) * 100).toFixed(1);
   };
 
   // Stock level indicator
@@ -359,25 +328,15 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
     }
   };
 
-  const handleCancel = () => {
-    setEditData(product); // Reset to original data
-    setIsEditing(false);
-  };
-
   const stockStatus = getStockStatus(product.stock);
+  const profitMargin = getProfitMargin(product.salePrice, product.purchasePrice);
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ y: -2 }}
       className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-6 border"
-      style={{
-        willChange: 'transform',
-        contain: 'layout style paint'
-      }}
     >
       {/* Product Header */}
       <div className="flex justify-between items-start mb-4">
@@ -387,12 +346,11 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
               type="text"
               value={editData.name}
               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-              className="text-lg font-semibold bg-gray-50 border rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="text-lg font-semibold bg-gray-50 border rounded px-2 py-1 w-full"
             />
           ) : (
             <h3 className="text-lg font-semibold text-gray-800">{product.name}</h3>
           )}
-          
           <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
         </div>
 
@@ -400,38 +358,25 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
         <div className="flex space-x-2">
           {isEditing ? (
             <>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSave}
-                disabled={isLoading}
-                className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:opacity-50"
-              >
+              <button onClick={handleSave} disabled={isLoading}
+                className="bg-green-500 text-white px-3 py-1 rounded text-sm">
                 {isLoading ? 'Saving...' : 'Save'}
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleCancel}
-                className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
-              >
+              </button>
+              <button onClick={() => setIsEditing(false)}
+                className="bg-gray-500 text-white px-3 py-1 rounded text-sm">
                 Cancel
-              </motion.button>
+              </button>
             </>
           ) : (
             <>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-              >
+              <button onClick={() => setIsEditing(true)}
+                className="bg-blue-500 text-white px-3 py-1 rounded text-sm">
                 Edit
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onDelete(product._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-              >
+              </button>
+              <button onClick={() => onDelete(product._id)}
+                className="bg-red-500 text-white px-3 py-1 rounded text-sm">
                 Delete
-              </motion.button>
+              </button>
             </>
           )}
         </div>
@@ -439,42 +384,46 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
 
       {/* Product Details */}
       <div className="space-y-3">
-        {/* Category */}
+        {/* Purchase Price */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Category:</span>
-          {isEditing ? (
-            <select
-              value={editData.category}
-              onChange={(e) => setEditData({ ...editData, category: e.target.value })}
-              className="bg-gray-50 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="Electronics">Electronics</option>
-              <option value="Clothing">Clothing</option>
-              <option value="Food">Food</option>
-              <option value="Books">Books</option>
-            </select>
-          ) : (
-            <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(product.category)}`}>
-              {product.category}
-            </span>
-          )}
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Price:</span>
+          <span className="text-sm text-gray-600">Purchase Price:</span>
           {isEditing ? (
             <input
               type="number"
               step="0.01"
               min="0"
-              value={editData.price}
-              onChange={(e) => setEditData({ ...editData, price: parseFloat(e.target.value) })}
-              className="bg-gray-50 border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={editData.purchasePrice}
+              onChange={(e) => setEditData({ ...editData, purchasePrice: parseFloat(e.target.value) })}
+              className="bg-gray-50 border rounded px-2 py-1 text-sm w-20"
             />
           ) : (
-            <span className="font-semibold text-green-600">${product.price}</span>
+            <span className="font-semibold text-gray-700">${product.purchasePrice?.toFixed(2)}</span>
           )}
+        </div>
+
+        {/* Sale Price */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Sale Price:</span>
+          {isEditing ? (
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={editData.salePrice}
+              onChange={(e) => setEditData({ ...editData, salePrice: parseFloat(e.target.value) })}
+              className="bg-gray-50 border rounded px-2 py-1 text-sm w-20"
+            />
+          ) : (
+            <span className="font-semibold text-green-600">${product.salePrice?.toFixed(2)}</span>
+          )}
+        </div>
+
+        {/* Profit Margin */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Profit Margin:</span>
+          <span className={`font-semibold ${profitMargin > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+            {profitMargin}%
+          </span>
         </div>
 
         {/* Stock */}
@@ -486,7 +435,7 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
               min="0"
               value={editData.stock}
               onChange={(e) => setEditData({ ...editData, stock: parseInt(e.target.value) })}
-              className="bg-gray-50 border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="bg-gray-50 border rounded px-2 py-1 text-sm w-20"
             />
           ) : (
             <div className="flex items-center space-x-2">
@@ -498,37 +447,19 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
           )}
         </div>
 
-        {/* Description */}
-        {isEditing ? (
-          <div>
-            <label className="text-sm text-gray-600">Description:</label>
-            <textarea
-              value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-              rows="3"
-              className="w-full bg-gray-50 border rounded px-2 py-1 text-sm mt-1 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Product description..."
+        {/* Category */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Category:</span>
+          {isEditing ? (
+            <input
+              type="text"
+              value={editData.category}
+              onChange={(e) => setEditData({ ...editData, category: e.target.value })}
+              className="bg-gray-50 border rounded px-2 py-1 text-sm"
             />
-          </div>
-        ) : (
-          product.description && (
-            <div>
-              <span className="text-sm text-gray-600">Description:</span>
-              <p className="text-sm text-gray-800 mt-1">{product.description}</p>
-            </div>
-          )
-        )}
-
-        {/* Status Indicator */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm text-gray-600">Status:</span>
-          <span className={`px-2 py-1 rounded text-xs font-medium ${
-            product.isActive 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {product.isActive ? 'Active' : 'Inactive'}
-          </span>
+          ) : (
+            <span className="text-sm font-medium text-gray-800">{product.category}</span>
+          )}
         </div>
       </div>
     </motion.div>
@@ -561,40 +492,64 @@ export default function ProductCard({ product, onUpdate, onDelete }) {
 #### `/` - Dashboard (Home)
 - **File**: `src/app/page.js`
 - **Features**:
-  - Welcome message with user name
-  - Quick stats overview
-  - Navigation cards to main features
-  - Responsive grid layout
+  - Welcome landing page with TwinStar branding
+  - Large animated logo with gradient background
+  - Call-to-action buttons for login and signup
+  - Responsive design with smooth animations
 
 #### `/products` - Product Management
 - **File**: `src/app/products/page.js`
 - **Features**:
-  - Product grid with search and filters
-  - Add/edit/delete products
-  - Category management
-  - Stock level indicators
+  - Product grid with search and category filters
+  - Add/edit/delete products with inline editing
+  - Purchase price and sale price tracking
+  - Profit margin calculations
+  - Stock level indicators and low stock alerts
+  - Auto-generated SKU system (PROD00001 format)
   - Real-time validation
 
 #### `/orders` - Order Management
 - **File**: `src/app/orders/page.js`
 - **Features**:
-  - Order cards with status tracking
+  - Order cards with detailed information
   - Create/edit/delete orders
   - Product selection with stock validation
-  - Customer information fields
-  - Order total calculations
+  - Multiple order statuses (confirmed, shipped, delivered, cancelled, credit)
+  - Credit order support with remaining balance tracking
+  - Discount support with automatic total calculations
+  - Customer information fields (name, address, phone)
+  - Order total and profit calculations
+
+#### `/persons` - Customer Management
+- **File**: `src/app/persons/page.js`
+- **Features**:
+  - Customer list with search functionality
+  - Spending analytics per customer
+  - Order history view with detailed modal
+  - Credit balance tracking
+  - Total orders and revenue per customer
+  - Contact information display
+  - Responsive cards with customer insights
 
 #### `/stats` - Analytics Dashboard
 - **File**: `src/app/stats/page.js`
 - **Features**:
   - Interactive Chart.js visualizations
-  - Daily revenue line charts
-  - Order status pie charts
-  - Top products, recent orders, low stock alerts
+  - Daily revenue and profit line charts
+  - Order status distribution pie charts
+  - Top-selling products with profit data
+  - Recent orders list
+  - Low stock alerts
   - "View More" expandable sections
-  - Time period filters
+  - Real-time calculations
 
-**Chart.js Integration Example:**
+#### `/invoices` - Invoice Generation
+- **File**: `src/app/invoices/page.js`
+- **Features**:
+  - PDF invoice generation
+  - Order selection interface
+  - Professional invoice formatting
+  - Download functionality
 ```javascript
 // src/app/stats/page.js
 'use client';
@@ -968,10 +923,81 @@ export default function StatsPage() {
 #### `POST /api/auth/login`
 - **Purpose**: User authentication
 - **Body**: `{ email, password }`
-- **Response**: User data and authentication cookie
-- **Features**: Password validation, session management
+- **Response**: User data and HTTP-only authentication cookie
+- **Features**: bcrypt password verification, secure session management
 
-**Implementation Example:**
+#### `POST /api/auth/logout`
+- **Purpose**: User session termination
+- **Response**: Success confirmation
+- **Features**: Cookie cleanup, secure logout
+
+#### `POST /api/signup`
+- **Purpose**: New user registration
+- **Body**: `{ fullName, email, password }`
+- **Response**: Success confirmation
+- **Features**: Email uniqueness validation, password hashing with bcrypt
+
+### Data Management Routes
+
+#### `GET/POST/PUT/DELETE /api/products`
+- **Purpose**: Product CRUD operations
+- **GET**: Retrieve products with filtering and pagination
+- **POST**: Create new product with auto-generated SKU
+- **PUT**: Update existing product and track stock changes in StockHistory
+- **DELETE**: Soft delete product (set isActive: false)
+- **Features**: 
+  - Auto-generated SKU format: PROD00001, PROD00002, etc.
+  - Purchase price and sale price tracking
+  - Stock history logging for spending calculations
+  - User ownership validation
+  - Stock management with validation
+
+#### `GET/POST/PUT/DELETE /api/orders`
+- **Purpose**: Order CRUD operations
+- **GET**: Retrieve user orders with filtering options
+- **POST**: Create new order with stock validation and automatic calculations
+- **PUT**: Update order with stock adjustments
+- **DELETE**: Soft delete order with stock restoration
+- **Features**:
+  - Auto-generated order ID format: ORD00001, ORD00002, etc.
+  - Product validation and stock checks
+  - Automatic subtotal and order total calculations
+  - Discount support with automatic price adjustments
+  - Credit order support with remaining balance tracking
+  - Order statuses: confirmed, shipped, delivered, cancelled, credit
+  - Profit calculations based on purchase vs sale prices
+
+#### `GET /api/persons`
+- **Purpose**: Customer analytics and management
+- **GET**: Retrieve customer list with order history and spending data
+- **Query Params**: `search` for filtering by customer name
+- **Response**: Customer data with aggregated statistics
+- **Features**:
+  - Total orders per customer
+  - Total spending per customer
+  - Credit balance tracking
+  - Order history with detailed information
+
+#### `GET /api/report`
+- **Purpose**: Monthly report data for PDF generation
+- **Query Params**: `month` (01-12), `year` (e.g., 2024)
+- **Response**: Comprehensive monthly data including products and orders
+- **Features**:
+  - Product list with current stock and prices
+  - Orders filtered by month/year
+  - Totals for sales, profit, and remaining balances
+  - Ready for PDF generation via ReportPDF.js
+
+#### `GET /api/stats`
+- **Purpose**: Analytics data aggregation for dashboard
+- **Response**: Comprehensive statistics and insights
+- **Features**: 
+  - Daily revenue and profit trends (last 30 days)
+  - Order status distribution
+  - Top-selling products with profit data
+  - Low stock alerts (stock <= 10)
+  - Monthly statistics snapshots
+  - MongoDB aggregation pipelines for efficient calculations
 ```javascript
 // src/app/api/auth/login/route.js
 import bcrypt from 'bcryptjs';
@@ -1263,16 +1289,189 @@ export async function GET() {
 ### User Model
 ```javascript
 {
-  fullName: String (required, max 100)
-  email: String (required, unique, validated)
-  password: String (required, min 6, hashed)
+  fullName: String (required, max 100, trimmed)
+  email: String (required, unique, lowercase, validated)
+  password: String (required, min 6, bcrypt hashed, select: false)
   role: String (enum: admin/user, default: user)
   isActive: Boolean (default: true)
   timestamps: createdAt, updatedAt
 }
 ```
 
-**Mongoose Schema Implementation:**
+**Features:**
+- Email validation with regex pattern
+- Automatic password hashing on save with bcrypt (10 salt rounds)
+- Password comparison method for authentication
+- Indexed on email and fullName for fast lookups
+
+### Product Model
+```javascript
+{
+  sku: String (unique, uppercase, auto-generated: PROD00001)
+  name: String (required, max 200, trimmed)
+  description: String (max 1000, trimmed)
+  category: String (required, max 50, trimmed)
+  purchasePrice: Number (required, min 0, 2 decimals)
+  salePrice: Number (required, min 0, 2 decimals)
+  stock: Integer (required, min 0, whole number)
+  userId: ObjectId (ref: User, required)
+  userName: String (required, denormalized)
+  isActive: Boolean (default: true)
+  timestamps: createdAt, updatedAt
+}
+```
+
+**Features:**
+- Auto-generated SKU using Counter collection for sequential IDs
+- Purchase and sale price tracking for profit calculations
+- Stock validation (must be whole number, non-negative)
+- Automatic userName denormalization on save
+- Indexed on sku, category, name, isActive, userId
+- Pre-save hook handles SKU generation and user lookup
+
+### Order Model
+```javascript
+{
+  orderId: String (unique, uppercase, auto-generated: ORD00001)
+  orderItems: [{
+    productId: ObjectId (ref: Product, required)
+    productName: String (required, denormalized)
+    productPrice: Number (required, min 0, sale price at time of order)
+    purchasePrice: Number (default: 0, min 0, for profit calculation)
+    quantity: Integer (required, min 1, whole number)
+    itemTotal: Number (required, calculated: productPrice * quantity)
+  }]
+  subtotal: Number (min 0, 2 decimals, sum of all itemTotal)
+  discountAmount: Number (default: 0, min 0, 2 decimals)
+  orderTotal: Number (required, min 0, 2 decimals, subtotal - discountAmount)
+  orderDate: Date (default: Date.now)
+  orderTime: String (required, HH:MM:SS format)
+  receivedBy: String (required, max 100, customer name)
+  address: String (required, max 500)
+  phoneNumber: String (required, max 20, validated format)
+  orderStatus: String (enum: confirmed/shipped/delivered/cancelled/credit, default: confirmed)
+  creditAmount: Number (default: 0, min 0, amount paid for credit orders)
+  remainingAmount: Number (default: 0, min 0, balance due for credit orders)
+  userId: ObjectId (ref: User, required)
+  userName: String (required, denormalized)
+  isActive: Boolean (default: true)
+  timestamps: createdAt, updatedAt
+}
+```
+
+**Features:**
+- Auto-generated order ID using Counter collection
+- Automatic calculation of item totals, subtotal, and order total
+- Discount support with automatic total adjustments
+- Credit order system with partial payment tracking
+- Pre-save hooks calculate all totals and handle credit amounts
+- Denormalized product data preserves pricing at time of order
+- Indexed on orderId, userId, orderStatus, orderDate, isActive
+- Phone number format validation
+
+### StockHistory Model
+```javascript
+{
+  productId: ObjectId (ref: Product, required)
+  userId: ObjectId (ref: User, required)
+  previousStock: Number (required, default: 0)
+  newStock: Number (required)
+  stockAdded: Number (required, only positive additions)
+  purchasePrice: Number (required, purchase price at time of addition)
+  totalCost: Number (required, stockAdded * purchasePrice)
+  changeType: String (enum: create/update, required)
+  changeDate: Date (default: Date.now)
+  timestamps: createdAt, updatedAt
+}
+```
+
+**Purpose:** Tracks stock additions for accurate spending calculations and inventory history.
+
+**Features:**
+- Records only stock increases (additions to inventory)
+- Captures purchase price at time of addition
+- Calculates total cost of stock additions
+- Used for financial reporting and spending analysis
+- Indexed on userId + changeDate, productId, changeDate
+
+### MonthlySnapshot Model
+```javascript
+{
+  userId: ObjectId (ref: User, required)
+  userName: String (required, trimmed)
+  month: Number (required, 1-12)
+  year: Number (required)
+  periodStart: Date (required, start of month)
+  periodEnd: Date (required, end of month)
+  
+  overview: {
+    totalOrders: Number (default: 0)
+    totalRevenue: Number (default: 0)
+    totalProducts: Number (default: 0)
+    avgOrderValue: Number (default: 0)
+    totalProfit: Number (default: 0)
+    profitMargin: Number (default: 0, percentage)
+    totalStock: Number (default: 0)
+    totalInventoryValue: Number (default: 0)
+    lowStockCount: Number (default: 0)
+  }
+  
+  topProducts: [{
+    productId: ObjectId (ref: Product)
+    productName: String
+    totalQuantity: Number
+    totalRevenue: Number
+  }]
+  
+  categoryStats: [{
+    category: String
+    count: Number
+    totalValue: Number
+    avgPrice: Number
+  }]
+  
+  statusDistribution: [{
+    status: String
+    count: Number
+    revenue: Number
+  }]
+  
+  dailyRevenue: [{
+    date: String (YYYY-MM-DD)
+    revenue: Number
+    orders: Number
+  }]
+  
+  isActive: Boolean (default: true)
+  timestamps: createdAt, updatedAt
+}
+```
+
+**Purpose:** Stores pre-calculated monthly statistics for faster analytics and historical reporting.
+
+**Features:**
+- One snapshot per user per month (unique compound index)
+- Comprehensive business metrics overview
+- Top products and category breakdowns
+- Daily revenue tracking within the month
+- Reduces database load for historical data queries
+- Can be generated via create-snapshot.js script
+
+### Counter Model
+```javascript
+{
+  _id: String (unique identifier, e.g., "productId_<userId>" or "orderId_<userId>")
+  sequence_value: Number (default: 0, incrementing counter)
+}
+```
+
+**Purpose:** Manages auto-incrementing sequences for SKUs and Order IDs per user.
+
+**Features:**
+- User-scoped counters (each user has independent sequences)
+- Atomic increment operations with findByIdAndUpdate
+- Used by Product and Order pre-save hooks
+- Ensures sequential, predictable IDs
 ```javascript
 // src/models/models.js
 import mongoose from 'mongoose';
@@ -1554,231 +1753,214 @@ export const Order = mongoose.models.Order || mongoose.model('Order', orderSchem
 ## Styling & Design
 
 ### Design System
-- **Color Palette**: Purple gradient theme (#8b5cf6 to #ec4899)
+- **Color Palette**: Purple to pink gradient theme (from-purple-600 to-pink-500)
 - **Typography**: System fonts with responsive sizing
-- **Spacing**: 8px grid system
-- **Border Radius**: Consistent 8px-16px rounded corners
-- **Shadows**: Layered elevation system
+- **Spacing**: Tailwind's default spacing scale
+- **Border Radius**: Consistent rounded corners (rounded-lg, rounded-xl)
+- **Shadows**: Tailwind shadow utilities (shadow-md, shadow-lg)
 
 ### Animation System
 - **Library**: Framer Motion 12.23.12
-- **Transitions**: 0.2-0.3s duration with easeOut timing
-- **Effects**: Fade-ins, hover transforms, layout animations
-- **Performance**: Optimized with `will-change` and `contain` CSS properties
+- **Transitions**: Smooth 0.2-0.3s durations
+- **Effects**: Fade-ins, slide animations, hover transforms, layout animations
+- **Sidebar**: Expandable/collapsible with smooth width transitions
+- **Cards**: Hover lift effects and scale animations
 
 ### Responsive Design
-- **Breakpoints**: Mobile-first approach
-  - `sm`: 640px
-  - `md`: 768px  
-  - `lg`: 1024px
-  - `xl`: 1280px
-- **Navigation**: Hamburger menu on mobile, sidebar on desktop
-- **Grid Systems**: CSS Grid and Flexbox for layouts
+- **Breakpoints**: Mobile-first Tailwind approach
+  - Mobile: <768px (overlay sidebar)
+  - Desktop: >=768px (collapsible sidebar)
+- **Navigation**: Overlay sidebar on mobile, collapsible sidebar on desktop
+- **Grid Systems**: Tailwind Grid and Flexbox utilities
+- **Forms**: Responsive input fields and dropdowns
 
+## Key Features Walkthrough
 
-## Features Walkthrough
-
-### Dashboard
-- Overview of business metrics
-- Quick navigation to main features
-- Responsive card layout
+### Dashboard & Landing
+- Clean landing page with TwinStar branding
+- Large animated logo with gradient background
+- Quick access to login and signup
+- Responsive layout with smooth transitions
 
 ### Product Management
-- Advanced filtering and search
-- Inline editing with real-time validation
-- Category-based organization with color coding
-- Stock level tracking
-- Dynamic category color assignment with localStorage persistence
-
-#### Color Picker System
-The product management interface includes a sophisticated color picker that allows users to assign custom colors to product categories:
-
-**Features:**
-- 12 predefined color options (Blue, Purple, Green, Red, Yellow, Pink, Indigo, Teal, Orange, Cyan, Lime, Rose)
-- Interactive modal with color grid and hover effects
-- Real-time color preview
-- localStorage persistence across browser sessions
-- Dynamic category color application throughout the interface
-
-**Implementation:**
-```javascript
-// Color options with corresponding Tailwind CSS classes
-const colorOptions = [
-  { name: 'Blue', bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-800', value: 'blue' },
-  { name: 'Purple', bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-800', value: 'purple' },
-  // ... additional colors
-];
-
-// localStorage integration for persistence
-const saveCategoryColors = (colors) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('categoryColors', JSON.stringify(colors));
-  }
-};
-
-const loadCategoryColors = () => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('categoryColors');
-    return saved ? JSON.parse(saved) : {};
-  }
-  return {};
-};
-```
-
-**Usage:**
-1. Click the color swatch next to any category in the product form
-2. Select from 12 available colors in the interactive modal
-3. Colors are automatically saved and applied across the interface
-4. Category colors persist between browser sessions
+- Grid view with inline editing
+- Purchase price and sale price tracking
+- Profit margin calculations displayed per product
+- Stock level indicators (out of stock, low stock, in stock)
+- Category-based filtering
+- Search functionality
+- Auto-generated SKU system (PROD00001, PROD00002, etc.)
+- Real-time validation for prices and stock
 
 ### Order Processing
-- Comprehensive order creation
-- Customer information management
-- Real-time stock validation
-- Status tracking workflow
+- Comprehensive order creation interface
+- Product selection with real-time stock checking
+- Multiple order statuses: confirmed, shipped, delivered, cancelled, credit
+- Credit order system with partial payment tracking
+- Discount support with automatic total adjustments
+- Customer information (name, address, phone number)
+- Profit calculations based on purchase vs sale prices
+- Auto-generated order IDs (ORD00001, ORD00002, etc.)
 
-### Analytics
-- Interactive charts and graphs
-- Expandable detail views
-- Time-based filtering
-- Export capabilities
+### Customer Management (Persons)
+- Customer list with spending analytics
+- Order history per customer with detailed modal view
+- Total orders and revenue per customer
+- Credit balance tracking
+- Search functionality
+- Contact information display
+
+### Analytics Dashboard
+- Interactive Chart.js visualizations
+- Daily revenue and profit trends
+- Order status distribution charts
+- Top-selling products with profit data
+- Recent orders overview
+- Low stock alerts
+- Expandable sections for detailed views
+
+### PDF Report Generation
+- Monthly reports with month/year selection dropdown
+- Comprehensive product tables with current prices and stock
+- Order summaries grouped by status
+- Profit calculations and totals
+- Professional multi-page PDF formatting
+- Automatic page breaks and headers
+- Uses jsPDF and jsPDF-autotable
 
 ### Mobile Experience
-- Hamburger navigation menu
+- Overlay sidebar that slides in from left
 - Touch-optimized interactions
-- Responsive data tables
-- Optimized performance
+- Responsive tables and cards
+- Optimized forms for mobile input
+- Smooth animations adapted for mobile performance
 
 ## Security Features
 
-- **Password Hashing**: bcryptjs with salt rounds
-- **Authentication**: HTTP-only cookies with 30-day expiration
-- **Input Validation**: Server-side validation for all inputs
-- **SQL Injection Prevention**: Mongoose ODM protection
-- **XSS Protection**: React's built-in escaping
+- **Password Hashing**: bcryptjs with 10 salt rounds
+- **Authentication**: HTTP-only cookies with secure, sameSite: 'strict' configuration
+- **Input Validation**: Comprehensive server-side validation for all models
+- **NoSQL Injection Prevention**: Mongoose ODM with schema validation
+- **XSS Protection**: React's built-in JSX escaping
 - **CSRF Protection**: SameSite cookie configuration
+- **Password Selection**: Password field has select: false to prevent accidental exposure
 
 ## Performance Optimizations
 
-- **Next.js 15**: App Router with Turbopack for fast builds
-- **React 19**: Latest performance improvements
-- **Code Splitting**: Automatic route-based splitting
-- **Image Optimization**: Next.js built-in optimization
-- **CSS Optimization**: Tailwind CSS purging
-- **Animation Performance**: CSS containment and will-change
+- **Next.js 15.1.11**: App Router with Turbopack for faster development builds
+- **React 19.0.0**: Latest React with concurrent features
+- **Code Splitting**: Automatic route-based code splitting
+- **Database Indexing**: Strategic indexes on frequently queried fields
+- **Denormalized Data**: userName stored in orders and products for faster queries
+- **MongoDB Aggregation**: Efficient data aggregation for analytics
+- **Monthly Snapshots**: Pre-calculated statistics reduce real-time computation load
+- **CSS Optimization**: Tailwind CSS with production purging
 
 ## Dependencies
 
 ### Core Dependencies
-- **next**: 15.1.0 - React framework
+- **next**: 15.1.11 - React framework with App Router
 - **react**: 19.0.0 - UI library
+- **react-dom**: 19.0.0 - React DOM renderer
 - **mongoose**: 8.18.0 - MongoDB ODM
 - **framer-motion**: 12.23.12 - Animation library
-- **chart.js**: 4.5.0 - Charting library
-- **tailwindcss**: 3.4.1 - CSS framework
+- **chart.js**: 4.5.0 - Data visualization
+- **tailwindcss**: 3.4.1 - Utility-first CSS framework
 
 ### Authentication & Security
 - **bcryptjs**: 3.0.2 - Password hashing
-- **dotenv**: 17.2.1 - Environment variables
+- **dotenv**: 17.2.1 - Environment variable management
 
 ### UI & Icons
-- **lucide-react**: 0.541.0 - Icon library
-- **react-chartjs-2**: 5.3.0 - Chart.js React wrapper
+- **lucide-react**: 0.541.0 - Icon library with React components
+- **react-chartjs-2**: 5.3.0 - React wrapper for Chart.js
 
 ### PDF Generation
-- **jspdf**: 3.0.2 - PDF generation
-- **html2canvas**: 1.4.1 - HTML to canvas conversion
+- **jspdf**: 3.0.3 - PDF document generation
+- **jspdf-autotable**: 5.0.2 - Table plugin for jsPDF
 
-## Contributing
+### Dev Dependencies
+- **@eslint/eslintrc**: ^3 - ESLint configuration
+- **eslint**: ^9 - JavaScript linter
+- **eslint-config-next**: 15.1.0 - Next.js ESLint config
+- **postcss**: ^8 - CSS transformation tool
+- **tailwindcss**: ^3.4.1 - CSS framework
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+## Setup & Installation
 
-## License
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd inventrix
+   ```
 
-This project is licensed under the MIT License.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## Configuration Examples
+3. **Configure environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   MONGODB_URI=your-mongodb-connection-string
+   MONGODB_DB=twinstar
+   NODE_ENV=development
+   ```
 
-### Environment Setup
-```env
-# Database
-MONGODB_URI=your-mongodb-connection-string
+4. **Run development server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-# Authentication
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
+5. **Build for production**
+   ```bash
+   npm run build
+   npm run start
+   ```
 
-# App Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development
-```
+## Available Scripts
 
-### Database Connection
-```javascript
-// src/lib/mongodb.js
-import mongoose from 'mongoose';
-
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
-}
-
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-async function connectToDatabase() {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      bufferMaxEntries: 0,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts)
-      .then((mongoose) => {
-        console.log('Connected to MongoDB');
-        return mongoose;
-      })
-      .catch((error) => {
-        console.error('MongoDB connection error:', error);
-        throw error;
-      });
-  }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
-}
-
-export default connectToDatabase;
-```
-
-### Development Scripts
 ```bash
 npm run dev      # Start development server with Turbopack
 npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run ESLint
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+```
 
+## Database Utilities
 
+The project includes several utility scripts in the `scripts/` directory for database management:
+
+- **add-sample-data.js**: Generate sample products and orders for testing
+- **backfill-stock-history.js**: Populate StockHistory collection from existing products
+- **create-snapshot.js**: Generate monthly snapshot for analytics
+- **check-order-dates.js**: Validate order date formats
+- **debug-database.js**: General database inspection tool
+- **find-product-and-order.js**: Search for specific products and orders
+- **list-all-users.js**: Display all users in the database
+- **set-password.js**: Reset user password
+- **fix-product-schema.js**: Migrate products to new schema
+- **inject-test-profit-data.js**: Add test data with profit information
+
+Run scripts with:
+```bash
+node scripts/<script-name>.js
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License.
 ```
 
 
