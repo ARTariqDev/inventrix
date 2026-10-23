@@ -349,33 +349,92 @@ export async function GET(request) {
     const allProductsFull = await Product.find({ userId: userObjectId, isActive: true })
       .select('_id name stock category purchasePrice salePrice');
 
+    const stockHistoryTotals = await StockHistory.aggregate([
+      {
+        $match: {
+          userId: userObjectId,
+          productId: { $in: allProductsFull.map((product) => product._id) }
+        }
+      },
+      {
+        $group: {
+          _id: "$productId",
+          totalStockBrought: { $sum: "$stockAdded" }
+        }
+      }
+    ]);
+    const stockHistoryByProduct = new Map(
+      stockHistoryTotals.map((entry) => [entry._id.toString(), entry.totalStockBrought])
+    );
+
+    const productsWithoutStockHistory = allProductsFull.filter(
+      (product) => !stockHistoryByProduct.get(product._id.toString())
+    );
+    const soldTotals = productsWithoutStockHistory.length > 0
+      ? await Order.aggregate([
+          {
+            $match: {
+              $or: productsWithoutStockHistory.map((product) => ({
+                "orderItems.productId": product._id
+              }))
+            }
+          },
+          { $unwind: "$orderItems" },
+          {
+            $match: {
+              "orderItems.productId": {
+                $in: productsWithoutStockHistory.map((product) => product._id)
+              }
+            }
+          },
+          {
+            $group: {
+              _id: "$orderItems.productId",
+              totalSold: { $sum: "$orderItems.quantity" }
+            }
+          }
+        ])
+      : [];
+    const soldByProduct = new Map(
+      soldTotals.map((entry) => [entry._id.toString(), entry.totalSold])
+    );
+
     const productsWithStockBrought = [];
-    for (const product of allProductsFull) {
-      // Sum stockAdded from StockHistory
-      const stockHistoryEntries = await StockHistory.find({ productId: product._id, userId: userObjectId });
-      const totalStockBrought = stockHistoryEntries.reduce((sum, entry) => sum + (entry.stockAdded || 0), 0);
-      let finalStockBrought = totalStockBrought;
-      let inferred = null;
-      let totalSold = 0;
-      
-      if (totalStockBrought === 0) {
-        // Sum total sold from orders (by productId and also by case-insensitive name match)
+    const productsNeedingNameFallback = productsWithoutStockHistory.filter(
+      (product) => !soldByProduct.has(product._id.toString())
+    );
+    const nameFallbackTotals = await Promise.all(
+      productsNeedingNameFallback.map(async (product) => {
         const totalSoldAgg = await Order.aggregate([
           { $unwind: "$orderItems" },
-          { $match: {
-              $or: [
-                { "orderItems.productId": product._id },
-                { "orderItems.productName": { $regex: `^${product.name.replace(/[-\s]+/g, ".*")}$`, $options: "i" } }
-              ]
+          {
+            $match: {
+              "orderItems.productName": {
+                $regex: `^${product.name.replace(/[-\s]+/g, ".*")}$`,
+                $options: "i"
+              }
             }
           },
           { $group: { _id: null, totalSold: { $sum: "$orderItems.quantity" } } }
         ]);
-        totalSold = totalSoldAgg[0]?.totalSold || 0;
+        return [product._id.toString(), totalSoldAgg[0]?.totalSold || 0];
+      })
+    );
+    const nameFallbackByProduct = new Map(nameFallbackTotals);
+
+    for (const product of allProductsFull) {
+      const productId = product._id.toString();
+      const totalStockBrought = stockHistoryByProduct.get(productId) || 0;
+      let finalStockBrought = totalStockBrought;
+      let inferred = null;
+      let totalSold = 0;
+
+      if (totalStockBrought === 0) {
+        totalSold = soldByProduct.get(productId) || nameFallbackByProduct.get(productId) || 0;
         inferred = totalSold + (product.stock || 0);
         finalStockBrought = inferred;
       }
-      
+
       console.log(`[STOCK DEBUG] Product: ${product.name} | ID: ${product._id}`);
       console.log(`  totalStockBrought: ${totalStockBrought}`);
       console.log(`  totalSold: ${totalSold}`);
@@ -448,29 +507,29 @@ export async function GET(request) {
     const avgOrderValueChange = calculateChange(avgOrderValue, previousAvgOrderValue);
     const profitChange = calculateChange(currentProfit, previousProfitValue);
 
-    const totalStock = await Product.aggregate([
-      { $match: { userId: userObjectId, isActive: true } },
-      { $group: { _id: null, total: { $sum: "$stock" } } }
-    ]);
-
-    // Calculate total inventory value (cost of all stock)
-    const totalInventoryValue = await Product.aggregate([
-      { $match: { userId: userObjectId, isActive: true } },
-      { 
-        $group: { 
-          _id: null, 
-          totalValue: { 
-            $sum: { 
-              $multiply: ["$salePrice", "$stock"]
-            } 
-          },
-          purchaseValue: {
-            $sum: {
-              $multiply: ["$purchasePrice", "$stock"]
+    const [totalStock, totalInventoryValue] = await Promise.all([
+      Product.aggregate([
+        { $match: { userId: userObjectId, isActive: true } },
+        { $group: { _id: null, total: { $sum: "$stock" } } }
+      ]),
+      Product.aggregate([
+        { $match: { userId: userObjectId, isActive: true } },
+        {
+          $group: {
+            _id: null,
+            totalValue: {
+              $sum: {
+                $multiply: ["$salePrice", "$stock"]
+              }
+            },
+            purchaseValue: {
+              $sum: {
+                $multiply: ["$purchasePrice", "$stock"]
+              }
             }
           }
-        } 
-      }
+        }
+      ])
     ]);
 
     // Format daily revenue data
