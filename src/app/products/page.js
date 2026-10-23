@@ -7,6 +7,7 @@ import Layout from "../components/Layout";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [totalStockBrought, setTotalStockBrought] = useState({});
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -60,10 +61,29 @@ export default function ProductsPage() {
       const response = await fetch("/api/products");
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products || []);
+        const loadedProducts = data.products || [];
+        setProducts(loadedProducts);
+        const stockTotals = Object.fromEntries(
+          loadedProducts.map((product) => [product._id, null])
+        );
+        setTotalStockBrought(stockTotals);
+
+        if (loadedProducts.length > 0) {
+          const productIds = loadedProducts.map((product) => product._id).join(",");
+          const stockResponse = await fetch(
+            `/api/products/total-stock-brought?productIds=${encodeURIComponent(productIds)}`
+          );
+          if (stockResponse.ok) {
+            const stockData = await stockResponse.json();
+            Object.assign(stockTotals, stockData.totals || {});
+          } else {
+            console.error("Failed to fetch total stock brought:", stockResponse.status);
+          }
+        }
+        setTotalStockBrought(stockTotals);
         
         // Extract unique categories
-        const categories = [...new Set(data.products.map(p => p.category))];
+        const categories = [...new Set(loadedProducts.map(p => p.category))];
         setAvailableCategories(categories);
       }
     } catch (error) {
@@ -336,8 +356,15 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
+        <div className="max-w-7xl mx-auto animate-pulse">
+          <div className="h-10 w-72 bg-purple-100 rounded-lg mb-3" />
+          <div className="h-5 w-96 max-w-full bg-gray-200 rounded mb-8" />
+          <div className="h-20 bg-white rounded-2xl shadow-lg mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="h-72 bg-white rounded-2xl shadow-lg" />
+            ))}
+          </div>
         </div>
       </Layout>
     );
@@ -508,6 +535,7 @@ export default function ProductsPage() {
               <ProductCard
                 key={product._id}
                 product={product}
+                totalStockBrought={totalStockBrought[product._id]}
                 onUpdate={fetchProducts}
                 onDelete={fetchProducts}
                 getCategoryColor={getCategoryColor}
