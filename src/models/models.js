@@ -414,19 +414,39 @@ const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
 const StockHistory = mongoose.models.StockHistory || mongoose.model("StockHistory", StockHistorySchema);
 const MonthlySnapshot = mongoose.models.MonthlySnapshot || mongoose.model("MonthlySnapshot", MonthlySnapshotSchema);
 
+const mongooseCache = globalThis.__twinstarMongooseCache || {
+  connectionPromise: null,
+};
+globalThis.__twinstarMongooseCache = mongooseCache;
+
 export async function connectDB() {
-  if (mongoose.connection.readyState >= 1) return;
+  if (mongoose.connection.readyState === 1) return;
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI is not defined in environment variables. Check your .env file and dotenv config.");
   }
+
+  if (mongooseCache.connectionPromise) {
+    await mongooseCache.connectionPromise;
+    return;
+  }
+
+  const connectionPromise = mongoose.connect(process.env.MONGODB_URI, {
+    dbName: process.env.MONGODB_DB || "myapp",
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 10000,
+  });
+  mongooseCache.connectionPromise = connectionPromise;
+
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      dbName: process.env.MONGODB_DB || "myapp",
-    });
+    await connectionPromise;
     console.log("✅ MongoDB connected");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err);
     throw err;
+  } finally {
+    if (mongooseCache.connectionPromise === connectionPromise) {
+      mongooseCache.connectionPromise = null;
+    }
   }
 }
 

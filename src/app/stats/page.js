@@ -108,12 +108,13 @@ export default function StatsPage() {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-      } else {
+      } else if (response.status === 401) {
         router.push('/login');
+      } else {
+        console.error("Authentication verification failed:", response.status);
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
-      router.push('/login');
     }
   }, [router]);
 
