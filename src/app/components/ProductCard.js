@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Pencil, Trash2, Save, X, Banknote, Package, Calendar, Eye, EyeOff } from "lucide-react";
 
-export default function ProductCard({ product, onUpdate, onDelete, getCategoryColor: externalGetCategoryColor }) {
+export default function ProductCard({ product, totalStockBrought: providedTotalStockBrought, onUpdate, onDelete, getCategoryColor: externalGetCategoryColor }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [isDeleting, setIsDeleting] = useState(false);
@@ -14,23 +14,11 @@ export default function ProductCard({ product, onUpdate, onDelete, getCategoryCo
   const [loadingTotalStock, setLoadingTotalStock] = useState(true);
 
   useEffect(() => {
-    let ignore = false;
-    async function fetchTotalStock() {
-      setLoadingTotalStock(true);
-      try {
-        const res = await fetch(`/api/products/total-stock-brought?productId=${product._id}`);
-        if (!res.ok) throw new Error("Failed to fetch total stock brought");
-        const data = await res.json();
-        if (!ignore) setTotalStockBrought(data.totalStockBrought);
-      } catch (e) {
-        if (!ignore) setTotalStockBrought(null);
-      } finally {
-        if (!ignore) setLoadingTotalStock(false);
-      }
+    if (providedTotalStockBrought !== undefined) {
+      setTotalStockBrought(providedTotalStockBrought);
+      setLoadingTotalStock(false);
     }
-    if (product._id) fetchTotalStock();
-    return () => { ignore = true; };
-  }, [product._id]);
+  }, [providedTotalStockBrought]);
 
   const startEdit = (product) => {
     setEditingId(product._id);

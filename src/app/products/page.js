@@ -7,6 +7,7 @@ import Layout from "../components/Layout";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [totalStockBrought, setTotalStockBrought] = useState({});
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -60,10 +61,29 @@ export default function ProductsPage() {
       const response = await fetch("/api/products");
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products || []);
+        const loadedProducts = data.products || [];
+        setProducts(loadedProducts);
+        const stockTotals = Object.fromEntries(
+          loadedProducts.map((product) => [product._id, null])
+        );
+        setTotalStockBrought(stockTotals);
+
+        if (loadedProducts.length > 0) {
+          const productIds = loadedProducts.map((product) => product._id).join(",");
+          const stockResponse = await fetch(
+            `/api/products/total-stock-brought?productIds=${encodeURIComponent(productIds)}`
+          );
+          if (stockResponse.ok) {
+            const stockData = await stockResponse.json();
+            Object.assign(stockTotals, stockData.totals || {});
+          } else {
+            console.error("Failed to fetch total stock brought:", stockResponse.status);
+          }
+        }
+        setTotalStockBrought(stockTotals);
         
         // Extract unique categories
-        const categories = [...new Set(data.products.map(p => p.category))];
+        const categories = [...new Set(loadedProducts.map(p => p.category))];
         setAvailableCategories(categories);
       }
     } catch (error) {
@@ -508,6 +528,7 @@ export default function ProductsPage() {
               <ProductCard
                 key={product._id}
                 product={product}
+                totalStockBrought={totalStockBrought[product._id]}
                 onUpdate={fetchProducts}
                 onDelete={fetchProducts}
                 getCategoryColor={getCategoryColor}
