@@ -641,36 +641,6 @@ export async function GET(request) {
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // DEBUG: Compute sum of profit per order for January 2026 and compare to aggregation result
-    try {
-      const janStart = new Date(2026, 0, 1);
-      const janEnd = new Date(2026, 0, 31, 23, 59, 59);
-      const janOrders = await Order.find({ userId: userObjectId, isActive: true, orderDate: { $gte: janStart, $lte: janEnd } })
-        .populate('orderItems.productId', 'purchasePrice salePrice');
-
-      let janTotalProfitFromOrders = 0;
-      janOrders.forEach(order => {
-        let orderProfit = 0;
-        (order.orderItems || []).forEach(item => {
-          const prod = item.productId || {};
-          const effectivePurchase = (item.purchasePrice && item.purchasePrice > 0) ? item.purchasePrice : (prod.purchasePrice || 0);
-          const sale = (item.productPrice !== undefined && item.productPrice !== null) ? item.productPrice : (prod.salePrice || 0);
-          const qty = item.quantity || 0;
-          orderProfit += (sale - effectivePurchase) * qty;
-        });
-        orderProfit -= (order.discountAmount || 0);
-        janTotalProfitFromOrders += orderProfit;
-      });
-
-      const janAgg = monthlyProfit.find(m => m._id && m._id.year === 2026 && m._id.month === 1)?.totalProfit || 0;
-      console.log("🔬 JANUARY 2026 PROFIT CHECK:");
-      console.log("  Sum of profit per order (calculated from orders):", janTotalProfitFromOrders);
-      console.log("  Aggregation-based monthly profit (from pipeline):", janAgg);
-      console.log("  Difference (orders - aggregation):", janTotalProfitFromOrders - janAgg);
-    } catch (err) {
-      console.warn("Failed to compute JANUARY profit check:", err);
-    }
-
     // Combine monthly revenue and profit data
     const monthlyRevenueProfit = [];
     const now = new Date();

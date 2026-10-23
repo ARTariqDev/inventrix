@@ -356,8 +356,15 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
+        <div className="max-w-7xl mx-auto animate-pulse">
+          <div className="h-10 w-72 bg-purple-100 rounded-lg mb-3" />
+          <div className="h-5 w-96 max-w-full bg-gray-200 rounded mb-8" />
+          <div className="h-20 bg-white rounded-2xl shadow-lg mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="h-72 bg-white rounded-2xl shadow-lg" />
+            ))}
+          </div>
         </div>
       </Layout>
     );
