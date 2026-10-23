@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Button from "./components/Button";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,41 @@ import { Package } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/auth/verify", {
+          cache: "no-store",
+        });
+        if (response.ok) {
+          router.replace("/stats");
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to check existing session:", error);
+      } finally {
+        if (active) setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  if (checkingSession) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600" />
+      </main>
+    );
+  }
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
